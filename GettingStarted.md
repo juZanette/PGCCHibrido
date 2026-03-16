@@ -162,24 +162,20 @@ Se tudo estiver correto, o projeto será compilado e executado com sucesso! 🚀
 
 Agora que seu ambiente está configurado, você pode:
 
-✅ Copiar o conteúdo do repositório clonado para o **seu repositório**. Caso precise de ajuda para criar e organizar seu próprio repositório de exercícios, consulte os seguintes materiais:
-- [Tutorial de Entregas pelo Github](TutorialEntregasGithub.pdf)
-- [Organizando seu repositório no Github](OrganizandoRepositorioGithub.pdf)
-
 ✅ Adicionar os exercícios dentro da pasta `src/`
 ```
 📁 src/
-│── Hello3D.cpp
-│── Transformacoes.cpp
-│── Iluminacao.cpp
+│── Exemplo1.cpp
+│── Exemplo2.cpp
+│── Exemplo3.cpp
 ```
 
 ✅ Para cada exercício novo, atualizar o arquivo `CMakelists.txt`
 ```cmake
 set(EXERCISES 
-    Hello3D
-    Transformacoes
-    Iluminacao
+    Exemplo1
+    Exemplo2
+    Exemplo3
 )
 ```
 ✅ Atualmente, o `CMakelists.txt` já está configurado para compilar e gerar o excutável de cada código acrescentado no set EXERCISES. Se necessário, adicionar novas dependências
