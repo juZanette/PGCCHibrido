@@ -22,14 +22,15 @@ Siga as instruções detalhadas em [GettingStarted.md](GettingStarted.md) para c
 ├── 📂 common/                # Código reutilizável entre os projetos
 │   ├── glad.c                 
 ├── 📂 src/                   # Código-fonte dos exercícios
-│   ├── 📂 M1/                
-│   │   └── M1.cpp
-│   │   └── README.md
-│   │   └── Enunciado.pdf
-│   ├── 📂 M2/                
-│   │   └── M2.cpp
-│   │   └── README.md
-│   │   └── Enunciado.pdf
+│   ├── 📂 Exercicios/     
+│       ├── 📂 M1/                
+│   │       └── M1.cpp
+│   │       └── README.md
+│   │       └── Enunciado.pdf
+│   │   ├── 📂 M2/                
+│   │       └── M1.cpp
+│   │       └── README.md
+│   │       └── Enunciado.pdf
 │   └── ...                  
 ├── 📂 build/                 # Diretório gerado pelo CMake (não incluído no repositório)
 ├── 📄 CMakeLists.txt         # Configuração do CMake para compilar os projetos
