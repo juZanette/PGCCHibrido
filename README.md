@@ -15,9 +15,9 @@ Siga as instruções detalhadas em [GettingStarted.md](GettingStarted.md) para c
 ```plaintext
 📂 PGCCHibrido/
 ├── 📂 include/               # Cabeçalhos e bibliotecas de terceiros
-│   ├── 📂 glad/              # Cabeçalhos da GLAD (OpenGL Loader)
+│   ├── 📂 glad/              
 │   │   ├── glad.h
-│   │   ├── 📂 KHR/           # Diretório com cabeçalhos da Khronos (GLAD)
+│   │   ├── 📂 KHR/           
 │   │       ├── khrplatform.h
 ├── 📂 common/                # Código reutilizável entre os projetos
 │   ├── glad.c                 
