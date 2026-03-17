@@ -28,7 +28,7 @@ Siga as instruções detalhadas em [GettingStarted.md](GettingStarted.md) para c
 │   │       └── README.md
 │   │       └── Enunciado.pdf
 │   │   ├── 📂 M2/                
-│   │       └── M1.cpp
+│   │       └── M2.cpp
 │   │       └── README.md
 │   │       └── Enunciado.pdf
 │   └── ...                  
