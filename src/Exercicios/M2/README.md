@@ -35,4 +35,4 @@ O objetivo desta atividade é praticar a criação e renderização de triângul
 - A cada clique, um novo triângulo aparece na posição do clique.
 - Cada novo triângulo recebe uma cor diferente.
 
-![Exemplo de execução](M2-gif.gif)
+![Exemplo de execução](M2.gif)
