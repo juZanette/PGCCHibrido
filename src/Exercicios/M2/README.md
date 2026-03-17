@@ -14,14 +14,15 @@ O objetivo desta atividade é praticar a criação e renderização de triângul
 	- Compilar o projeto com CMake.
 
 2. **Compilação e execução:**
-	No terminal, dentro da pasta do projeto, execute:
-	```
-	cmake -S . -B build -G "MinGW Makefiles"
-	cmake --build build --target M2
-    .\build\M2.exe
-	```
-
-	Após a compilação, execute o binário gerado para o alvo **M2** (por exemplo, `M2.exe` no Windows).
+   No terminal, dentro da pasta do projeto, execute:
+   ```
+   cd build
+   cmake --build .
+   ```
+   Após a compilação, execute o programa com:
+   ```
+   ./M2.exe
+   ```
 
 ## Controles
 
@@ -33,3 +34,5 @@ O objetivo desta atividade é praticar a criação e renderização de triângul
 - A janela abre com 5 triângulos fixos desenhados.
 - A cada clique, um novo triângulo aparece na posição do clique.
 - Cada novo triângulo recebe uma cor diferente.
+
+![Exemplo de execução](M2-gif.gif)

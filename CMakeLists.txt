@@ -41,18 +41,6 @@ include_directories(${stb_image_SOURCE_DIR})
 # Lista de exercícios/projetos (um diretório para cada)
 # OBS.: Não pode ter acentos ou caracteres especiais
 set(EXERCISES
-    Exercicios/HelloTriangle
-    Exercicios/HelloOrtho
-    Exercicios/HelloTransforms
-    Exercicios/HelloTransformsHardCoded
-    Exercicios/Lista1/Ex5
-    Exercicios/Lista1/Ex8
-    Exercicios/HelloClasses
-    Exercicios/HelloTexture
-    Exercicios/HelloSprites
-    Exercicios/HelloPixels
-    Exercicios/HelloHSV
-    Exercicios/exemplo_02
     Exercicios/M2
 )
 

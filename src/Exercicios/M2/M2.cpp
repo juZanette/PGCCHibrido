@@ -13,7 +13,7 @@
 const GLint WIDTH = 800;
 const GLint HEIGHT = 600;
 
-// Estrutura solicitada no Exercício 3 para armazenar posição e cor do triângulo
+// Usado no Exercício 3 para armazenar posição e cor do triângulo
 struct Triangle {
     glm::vec2 position;
     glm::vec3 color;
@@ -24,11 +24,11 @@ GLFWwindow* window = nullptr;
 GLuint shaderPart1 = 0; // Shader usado na Parte 1 sem matriz de transformação
 GLuint shaderPart2 = 0; // Shader usado na Parte 2 com matriz de transformação
 
-std::vector<GLuint> part1VAOs; // Vetor solicitado no Exercício 2 para armazenar os 5 VAOs criados
-std::vector<GLuint> createdVBOs; // Guarda VBOs para desalocação no final
+std::vector<GLuint> part1VAOs; // Usado no Exercício 2 para armazenar os 5 VAOs
+std::vector<GLuint> createdVBOs;
 
-GLuint standardVAO = 0; // VAO padrão solicitado no Exercício 3
-std::vector<Triangle> triangles; // Vetor solicitado no Exercício 3 para armazenar triângulos criados pelo clique
+GLuint standardVAO = 0; // VAO padrão do Exrcício 3
+std::vector<Triangle> triangles; // Vetor do Exercício 3 para armazenar triângulos criados pelo mouse
 
 bool checkShaderCompile(GLuint shaderID, const char* shaderName)
 {
@@ -76,7 +76,7 @@ void cleanupGLResources()
         glDeleteProgram(shaderPart2);
 }
 
-// Função solicitada no Exercício 1 que cria um triângulo a partir de 3 coordenadas e retorna seu VAO
+// Função do Exercício 1 que cria um triângulo a partir de 3 coordenadas e retorna seu VAO
 GLuint createTriangle(float x0, float y0, float x1, float y1, float x2, float y2)
 {
     GLfloat vertices[] = {
@@ -104,7 +104,7 @@ GLuint createTriangle(float x0, float y0, float x1, float y1, float x2, float y2
     return vao;
 }
 
-// Callback de clique do mouse usado no Exercício 3 para criar novos triângulos na posição clicada
+// Callback do mouse Exercício 3 para criar novos triângulos
 void mouseClick(GLFWwindow*, int button, int action, int)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
@@ -120,7 +120,7 @@ void mouseClick(GLFWwindow*, int button, int action, int)
 
         t.position = glm::vec2(ndcX, ndcY);
 
-        // Geração de cor aleatória conforme solicitado no Exercício 3
+        // Geração de cor aleatória
         t.color = glm::vec3(
             static_cast<float>(rand()) / RAND_MAX,
             static_cast<float>(rand()) / RAND_MAX,
@@ -271,7 +271,7 @@ int main()
     glDeleteShader(vs2);
     glDeleteShader(fs2);
 
-    // Instanciação dos 5 triângulos solicitados no Exercício 2 usando a função createTriangle
+    // Criação dos 5 triângulos solicitados usando a função createTriangle
     part1VAOs.push_back(createTriangle(-0.58f, -0.10f, -0.38f, -0.10f, -0.48f, 0.10f));
     part1VAOs.push_back(createTriangle(-0.34f, -0.10f, -0.14f, -0.10f, -0.24f, 0.10f));
     part1VAOs.push_back(createTriangle(-0.10f, -0.10f, 0.10f, -0.10f, 0.00f, 0.10f));
@@ -303,7 +303,7 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 3);
         }
 
-        // Renderização da Parte 2 desenhando triângulos criados dinamicamente pelo clique
+        // Renderização da Parte 2 desenhando triângulos criados pelo clique
         glUseProgram(shaderPart2);
 
         GLint matrixLoc = glGetUniformLocation(shaderPart2, "matrix");
@@ -326,8 +326,11 @@ int main()
         glfwSwapBuffers(window);
     }
 
+    // Limpeza de recursos antes de encerrar o programa
     cleanupGLResources();
     glfwTerminate();
 
+
+    
     return 0;
 }
