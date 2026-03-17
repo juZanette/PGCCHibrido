@@ -1,4 +1,4 @@
-# Processamento Gráfico 2025/2
+# Processamento Gráfico 2026/1
 
 Este repositório contém códigos da disciplina de **Processamento Gráfico: Fundamentos** do curso Ciência da Computação da Unisinos.
 
