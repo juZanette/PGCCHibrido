@@ -23,7 +23,7 @@ Siga as instruções detalhadas em [GettingStarted.md](GettingStarted.md) para c
 │   ├── glad.c                 
 ├── 📂 src/                   # Código-fonte dos exercícios
 │   ├── 📂 Exercicios/     
-│       ├── 📂 M1/                
+│   │   ├── 📂 M1/                
 │   │       └── M1.cpp
 │   │       └── README.md
 │   │       └── Enunciado.pdf
