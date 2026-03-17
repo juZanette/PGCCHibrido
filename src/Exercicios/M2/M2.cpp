@@ -41,6 +41,7 @@ bool checkShaderCompile(GLuint shaderID, const char* shaderName)
         std::cout << "Erro compilando shader (" << shaderName << "): " << infoLog << "\n";
         return false;
     }
+
     return true;
 }
 
@@ -55,6 +56,7 @@ bool checkProgramLink(GLuint programID, const char* programName)
         std::cout << "Erro linkando programa (" << programName << "): " << infoLog << "\n";
         return false;
     }
+
     return true;
 }
 
@@ -76,7 +78,7 @@ void cleanupGLResources()
         glDeleteProgram(shaderPart2);
 }
 
-// Função do Exercício 1 que cria um triângulo a partir de 3 coordenadas e retorna seu VAO
+// Função do Exercício 1 qe cria um triângulo a partir de 3 coordenadas e retorna o VAO
 GLuint createTriangle(float x0, float y0, float x1, float y1, float x2, float y2)
 {
     GLfloat vertices[] = {
@@ -104,7 +106,7 @@ GLuint createTriangle(float x0, float y0, float x1, float y1, float x2, float y2
     return vao;
 }
 
-// Callback do mouse Exercício 3 para criar novos triângulos
+// Callback mouse do Exercício 3 para criar novos triângulos
 void mouseClick(GLFWwindow*, int button, int action, int)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
@@ -112,7 +114,7 @@ void mouseClick(GLFWwindow*, int button, int action, int)
         double mx, my;
         glfwGetCursorPos(window, &mx, &my);
 
-        // Conversão da posição do mouse da tela para coordenadas normalizadas do OpenGL
+        // Conversão da posição do mouse da tela para coordenadas normalizadas do opengL
         float ndcX = (2.0f * mx) / WIDTH - 1.0f;
         float ndcY = 1.0f - (2.0f * my) / HEIGHT;
 
@@ -271,14 +273,14 @@ int main()
     glDeleteShader(vs2);
     glDeleteShader(fs2);
 
-    // Criação dos 5 triângulos solicitados usando a função createTriangle
+    // Criação dos 5 triângulos usando a função createTriangle
     part1VAOs.push_back(createTriangle(-0.58f, -0.10f, -0.38f, -0.10f, -0.48f, 0.10f));
     part1VAOs.push_back(createTriangle(-0.34f, -0.10f, -0.14f, -0.10f, -0.24f, 0.10f));
     part1VAOs.push_back(createTriangle(-0.10f, -0.10f, 0.10f, -0.10f, 0.00f, 0.10f));
     part1VAOs.push_back(createTriangle(0.14f, -0.10f, 0.34f, -0.10f, 0.24f, 0.10f));
     part1VAOs.push_back(createTriangle(0.38f, -0.10f, 0.58f, -0.10f, 0.48f, 0.10f));
 
-    // Criação do triângulo padrão solicitado no Exercício 3
+    // Criação do triângulo padrão do Exercício 3
     standardVAO = createTriangle(-0.1f, -0.1f, 0.1f, -0.1f, 0.0f, 0.1f);
 
     while (!glfwWindowShouldClose(window))
@@ -293,7 +295,6 @@ int main()
 
         // Renderização da Parte 1 desenhando os 5 triângulos sem transformação
         glUseProgram(shaderPart1);
-
         GLint colorLoc = glGetUniformLocation(shaderPart1, "color");
         glUniform3f(colorLoc, 1.0f, 0.71f, 0.76f);
 
@@ -305,7 +306,6 @@ int main()
 
         // Renderização da Parte 2 desenhando triângulos criados pelo clique
         glUseProgram(shaderPart2);
-
         GLint matrixLoc = glGetUniformLocation(shaderPart2, "matrix");
         GLint colorLoc2 = glGetUniformLocation(shaderPart2, "color");
 
@@ -331,6 +331,6 @@ int main()
     glfwTerminate();
 
 
-    
+
     return 0;
 }
