@@ -47,6 +47,7 @@ set(EXERCISES
   Exercicios/M5
   Exercicios/M6
   Exercicios/AtividadeVivencial1
+  Exercicios/AtividadeVivencial2
 )
 
 add_compile_options(-Wno-pragmas)
