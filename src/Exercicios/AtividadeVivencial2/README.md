@@ -106,8 +106,5 @@ Ao executar a aplicação:
   * Camadas intermediárias se movem em velocidade média.
   * Camadas próximas se movem mais rapidamente.
 * O resultado final produzirá uma sensação visual de profundidade na cena.
-* Parallax Scrolling
-* Tratamento de Entrada via Teclado
-* Organização em Camadas (Layers)
 
 ![Resultado da Execução](AtividadeVivencial2-gif.gif)
