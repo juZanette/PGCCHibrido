@@ -225,7 +225,7 @@ int main() {
         return -1;
     }
 
-    // Para esse spritesheet, os frames sao quadrados (largura do frame = altura da imagem).
+    // A spritesheet tem uma unica linha de frames quadrados
     int frameWidthPx = playerTex.height;
     int frameCount = (frameWidthPx > 0) ? (playerTex.width / frameWidthPx) : 1;
     if (frameCount < 1) frameCount = 1;
