@@ -109,3 +109,5 @@ Ao executar a aplicação:
 * Parallax Scrolling
 * Tratamento de Entrada via Teclado
 * Organização em Camadas (Layers)
+
+![Resultado da Execução](AtividadeVivencial2-gif.gif)
