@@ -1,3 +1,5 @@
+//Grupo: Júlia Faccio Zanette e Samuel de Oliveira Pasquali
+
 #include "DiamondView.h"
 #include "TileMap.h"
 #include "gl_utils.h"
@@ -167,7 +169,7 @@ static void updateWindowTitle(GLFWwindow* window, int col, int row, unsigned cha
           << static_cast<int>(tileIndex)
           << " | Pintura "
           << static_cast<int>(selectedTile)
-          << " | 0-7 + Arrows/WASD + Q/E/Z/C";
+          << " | 0-7 + Arrows/WASD + Q/E/C/Z";
     glfwSetWindowTitle(window, title.str().c_str());
 }
 
@@ -259,7 +261,7 @@ static bool handlePaintSelection(GLFWwindow* window, unsigned char& selectedTile
     return false;
 }
 
-} // namespace
+}
 
 int main() {
     if (!glfwInit()) {
@@ -359,7 +361,7 @@ int main() {
     unsigned char selectedTile = 1;
     paintTile(map, 0, 0, selectedTile);
     updateWindowTitle(window, 0, 0, map.getTile(0, 0), selectedTile);
-    std::cout << "Controls: 0-7 selects paint tile; arrows/WASD + Q/E/Z/C move. ESC quits." << std::endl;
+    std::cout << "Controles: 0-7 para selecionar o tile; setas/WASD + Q/E/C/Z para mover. ESC para sair." << std::endl;
 
     float moveCooldown = 0.0f;
     double previousTime = glfwGetTime();
@@ -400,6 +402,9 @@ int main() {
 
         glfwSwapBuffers(window);
     }
+
+
+
 
     glDeleteBuffers(1, &ebo);
     glDeleteBuffers(1, &vbo);

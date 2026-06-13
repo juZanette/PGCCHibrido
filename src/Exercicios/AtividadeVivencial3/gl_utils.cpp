@@ -25,8 +25,6 @@ bool parseFileIntoString(const char* fileName, std::string& shaderSource) {
         "",
         "src/Exercicios/AtividadeVivencial3/",
         "../src/Exercicios/AtividadeVivencial3/",
-        "src/Exercicios/M6/",
-        "../src/Exercicios/M6/"
     };
 
     for (const std::string& prefix : prefixes) {
