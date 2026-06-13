@@ -90,7 +90,7 @@ assets/
 * `GameTypes.h`: estruturas de textura, spritesheet, vetor e personagem
 * `gl_utils.h/.cpp`: carregamento de texturas, spritesheets e shaders
 * `stb_image.cpp`: integração da biblioteca `stb_image`
-* `_geral_vs.glsl`: vertex shader gerals
+* `_geral_vs.glsl`: vertex shader geral
 * `_geral_fs.glsl`: fragment shader geral
 
 ## Controles
@@ -99,7 +99,7 @@ assets/
 * Seta Superior ou W: mover para cima
 * Seta Inferior ou S: mover para baixo
 * Seta Esquerda ou A: mover para a esquerda
-* Seta Direita ou D: mover para a direita* 
+* Seta Direita ou D: mover para a direita
 * Q/E/C/Z: mover uma célula na diagonal
 * ESC: encerrar a aplicação
 
