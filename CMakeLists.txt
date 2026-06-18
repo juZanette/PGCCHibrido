@@ -46,6 +46,7 @@ set(EXERCISES
   Exercicios/M4
   Exercicios/M5
   Exercicios/M6
+  Exercicios/GrauB
   Exercicios/AtividadeVivencial1
   Exercicios/AtividadeVivencial2
   Exercicios/AtividadeVivencial3
