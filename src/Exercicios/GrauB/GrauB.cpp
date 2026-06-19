@@ -23,12 +23,16 @@ constexpr int kWindowWidth = 1280;
 constexpr int kWindowHeight = 800;
 constexpr int kCrystalsToWin = 4;
 constexpr float kMoveCooldownSeconds = 0.16f;
+constexpr float kSceneScale = 0.80f;
+constexpr float kTreeVisualScale = 1.20f;
 
 static DiamondView g_tileView;
 static int gMapCols = 15;
 static int gMapRows = 15;
 static float gTileW = 74.88f;
 static float gTileH = 37.44f;
+static int gScreenW = kWindowWidth;
+static int gScreenH = kWindowHeight;
 
 struct GridPos {
     int col;
@@ -180,7 +184,7 @@ static bool loadGameConfig(GameConfig& config, const std::string& filePath) {
                 if (!(item >> tree.type)) {
                     tree.type = 1;
                 }
-                tree.type = std::max(1, std::min(3, tree.type));
+                tree.type = std::max(1, std::min(5, tree.type));
                 if (inBounds(tree.col, tree.row)) {
                     config.trees.push_back(tree);
                 }
@@ -257,16 +261,21 @@ static bool loadConfigFromKnownPaths(GameConfig& config) {
 }
 
 static void framebufferSizeCallback(GLFWwindow*, int width, int height) {
+    gScreenW = width;
+    gScreenH = height;
     glViewport(0, 0, width, height);
 }
 
 static Vec2 tileToScreen(float col, float row) {
     float x = 0.0f;
     float y = 0.0f;
-    const float originX = (static_cast<float>(kWindowWidth) * 0.5f)
-        - ((static_cast<float>(gMapCols - gMapRows) * gTileW) * 0.25f);
-    const float originY = 74.0f;
-    g_tileView.computeDrawPosition(col, row, gTileW, gTileH, originX, originY, x, y);
+    const float scaledTileW = gTileW * kSceneScale;
+    const float scaledTileH = gTileH * kSceneScale;
+    const float originX = (static_cast<float>(gScreenW) * 0.5f)
+        - ((static_cast<float>(gMapCols - gMapRows) * scaledTileW) * 0.25f);
+    const float diamondCenterYOffset = (static_cast<float>(gMapCols + gMapRows - 2) * scaledTileH) * 0.25f;
+    const float originY = (static_cast<float>(gScreenH) * 0.5f) - diamondCenterYOffset;
+    g_tileView.computeDrawPosition(col, row, scaledTileW, scaledTileH, originX, originY, x, y);
     return { x, y };
 }
 
@@ -290,11 +299,14 @@ static void setTileUv(std::vector<float>& vertices, int tileIndex, const Texture
     const float u1 = (static_cast<float>(tilesetCol + 1) * cellW) / static_cast<float>(texture.width) - halfTexelU;
     const float v1 = (static_cast<float>(tilesetRow + 1) * cellH) / static_cast<float>(texture.height) - halfTexelV;
 
+    const float scaledTileW = gTileW * kSceneScale;
+    const float scaledTileH = gTileH * kSceneScale;
+
     vertices = {
-        -gTileW * 0.5f, -gTileH * 0.5f, u0, v0,
-         gTileW * 0.5f, -gTileH * 0.5f, u1, v0,
-         gTileW * 0.5f,  gTileH * 0.5f, u1, v1,
-        -gTileW * 0.5f,  gTileH * 0.5f, u0, v1
+        -scaledTileW * 0.5f, -scaledTileH * 0.5f, u0, v0,
+         scaledTileW * 0.5f, -scaledTileH * 0.5f, u1, v0,
+         scaledTileW * 0.5f,  scaledTileH * 0.5f, u1, v1,
+        -scaledTileW * 0.5f,  scaledTileH * 0.5f, u0, v1
     };
 }
 
@@ -334,10 +346,10 @@ static void setSpriteFrameVertices(std::vector<float>& vertices, const Actor& ac
         std::swap(u0, u1);
     }
 
-    const float left = -actor.anchorX;
-    const float top = -actor.anchorY;
-    const float right = actor.drawWidth - actor.anchorX;
-    const float bottom = actor.drawHeight - actor.anchorY;
+    const float left = -actor.anchorX * kSceneScale;
+    const float top = -actor.anchorY * kSceneScale;
+    const float right = (actor.drawWidth - actor.anchorX) * kSceneScale;
+    const float bottom = (actor.drawHeight - actor.anchorY) * kSceneScale;
 
     vertices = {
         left,  top,    u0, v0,
@@ -373,10 +385,10 @@ static void setGridCellVertices(
         std::swap(u0, u1);
     }
 
-    const float left = -actor.anchorX;
-    const float top = -actor.anchorY;
-    const float right = actor.drawWidth - actor.anchorX;
-    const float bottom = actor.drawHeight - actor.anchorY;
+    const float left = -actor.anchorX * kSceneScale;
+    const float top = -actor.anchorY * kSceneScale;
+    const float right = (actor.drawWidth - actor.anchorX) * kSceneScale;
+    const float bottom = (actor.drawHeight - actor.anchorY) * kSceneScale;
 
     vertices = {
         left,  top,    u0, v0,
@@ -421,6 +433,14 @@ static void updateActorAnimationRange(Actor& actor, float dt, int firstFrame, in
     }
 }
 
+static void updateFrameIndex(float& timer, int& frame, float dt, float frameTime, int lastFrame) {
+    timer += dt;
+    while (timer >= frameTime) {
+        timer -= frameTime;
+        frame = frame >= lastFrame ? 0 : frame + 1;
+    }
+}
+
 static void drawActor(
     const Actor& actor,
     GLuint shaderProgram,
@@ -448,13 +468,19 @@ static void drawTreeActor(
     GLint offsetLoc,
     GLint alphaLoc,
     std::vector<float>& vertices,
-    float startY,
-    float endY
+    float sourceStartY,
+    float sourceEndY
 ) {
     const Vec2 screen = tileToScreen(actor.col, actor.row);
-    const int treeAnimationCol = 0;
-    const int treeAnimationRow = std::max(0, std::min(actor.frame, 2));
     const SpriteSheet& sheet = *actor.sheet;
+    const float sourceFrameHeight = static_cast<float>(sheet.frameHeight);
+    const bool usesHorizontalFrames = sheet.frameCount > 3;
+    const int treeAnimationCol = usesHorizontalFrames
+        ? std::max(0, std::min(actor.frame, sheet.frameCols - 1))
+        : 0;
+    const int treeAnimationRow = usesHorizontalFrames
+        ? 0
+        : std::max(0, std::min(actor.frame, sheet.frameRows - 1));
     const float halfTexelU = 0.5f / static_cast<float>(sheet.texture.width);
     const float halfTexelV = 0.5f / static_cast<float>(sheet.texture.height);
 
@@ -464,14 +490,17 @@ static void drawTreeActor(
     const int cellY1 = static_cast<int>(std::round((static_cast<float>(treeAnimationRow + 1) * sheet.texture.height) / sheet.frameRows));
 
     const float u0 = cellX0 / static_cast<float>(sheet.texture.width) + halfTexelU;
-    const float v0 = (cellY0 + startY) / static_cast<float>(sheet.texture.height) + halfTexelV;
+    const float v0 = (cellY0 + sourceStartY) / static_cast<float>(sheet.texture.height) + halfTexelV;
     const float u1 = cellX1 / static_cast<float>(sheet.texture.width) - halfTexelU;
-    const float v1 = (cellY0 + endY) / static_cast<float>(sheet.texture.height) - halfTexelV;
+    const float v1 = (cellY0 + sourceEndY) / static_cast<float>(sheet.texture.height) - halfTexelV;
 
-    const float left = -actor.anchorX;
-    const float top = startY - actor.anchorY;
-    const float right = actor.drawWidth - actor.anchorX;
-    const float bottom = endY - actor.anchorY;
+    const float destStartY = (sourceStartY / sourceFrameHeight) * actor.drawHeight;
+    const float destEndY = (sourceEndY / sourceFrameHeight) * actor.drawHeight;
+
+    const float left = -actor.anchorX * kSceneScale;
+    const float top = (destStartY - actor.anchorY) * kSceneScale;
+    const float right = (actor.drawWidth - actor.anchorX) * kSceneScale;
+    const float bottom = (destEndY - actor.anchorY) * kSceneScale;
 
     vertices = {
         left,  top,    u0, v0,
@@ -602,107 +631,6 @@ static void drawCrystalCounter(
     drawScreenRect(shaderProgram, vbo, offsetLoc, alphaLoc, useTextureLoc, colorLoc, vertices,
         66.0f, 50.0f, 22.0f, 5.0f, 0.95f, 0.95f, 0.95f, 1.0f);
     drawDigit(total, shaderProgram, vbo, offsetLoc, alphaLoc, useTextureLoc, colorLoc, vertices, 100.0f, 24.0f, 1.38f);
-}
-
-static const std::array<const char*, 7>& glyphFor(char c) {
-    static const std::array<const char*, 7> blank = {
-        "00000", "00000", "00000", "00000", "00000", "00000", "00000"
-    };
-    static const std::array<const char*, 7> glyphA = {
-        "01110", "10001", "10001", "11111", "10001", "10001", "10001"
-    };
-    static const std::array<const char*, 7> glyphC = {
-        "01111", "10000", "10000", "10000", "10000", "10000", "01111"
-    };
-    static const std::array<const char*, 7> glyphE = {
-        "11111", "10000", "10000", "11110", "10000", "10000", "11111"
-    };
-    static const std::array<const char*, 7> glyphI = {
-        "11111", "00100", "00100", "00100", "00100", "00100", "11111"
-    };
-    static const std::array<const char*, 7> glyphN = {
-        "10001", "11001", "10101", "10011", "10001", "10001", "10001"
-    };
-    static const std::array<const char*, 7> glyphR = {
-        "11110", "10001", "10001", "11110", "10100", "10010", "10001"
-    };
-    static const std::array<const char*, 7> glyphS = {
-        "01111", "10000", "10000", "01110", "00001", "00001", "11110"
-    };
-
-    switch (c) {
-        case 'A': return glyphA;
-        case 'C': return glyphC;
-        case 'E': return glyphE;
-        case 'I': return glyphI;
-        case 'N': return glyphN;
-        case 'R': return glyphR;
-        case 'S': return glyphS;
-        default: return blank;
-    }
-}
-
-static void drawBitmapChar(
-    char c,
-    GLuint shaderProgram,
-    GLuint vbo,
-    GLint offsetLoc,
-    GLint alphaLoc,
-    GLint useTextureLoc,
-    GLint colorLoc,
-    std::vector<float>& vertices,
-    float x,
-    float y,
-    float cell
-) {
-    const std::array<const char*, 7>& glyph = glyphFor(c);
-    const float gap = std::max(1.0f, cell * 0.16f);
-    const float pixel = cell - gap;
-
-    for (int row = 0; row < 7; ++row) {
-        for (int col = 0; col < 5; ++col) {
-            if (glyph[row][col] == '1') {
-                drawScreenRect(shaderProgram, vbo, offsetLoc, alphaLoc, useTextureLoc, colorLoc, vertices,
-                    x + col * cell, y + row * cell, pixel, pixel, 0.96f, 0.96f, 0.92f, 1.0f);
-            }
-        }
-    }
-}
-
-static void drawMessageText(
-    GLuint shaderProgram,
-    GLuint vbo,
-    GLint offsetLoc,
-    GLint alphaLoc,
-    GLint useTextureLoc,
-    GLint colorLoc,
-    std::vector<float>& vertices,
-    float x,
-    float y,
-    float scale
-) {
-    const std::string text = "R REINICIAR ESC SAIR";
-    const float spaceAdvance = 3.0f * scale;
-    const float charAdvance = 6.0f * scale;
-    float cursor = x;
-
-    for (char c : text) {
-        if (c == ' ') {
-            cursor += spaceAdvance;
-            continue;
-        }
-        drawBitmapChar(c, shaderProgram, vbo, offsetLoc, alphaLoc, useTextureLoc, colorLoc, vertices, cursor, y, scale);
-        cursor += charAdvance;
-    }
-}
-
-static float measureMessageText(float scale) {
-    const std::string text = "R REINICIAR ESC SAIR";
-    float width = 0.0f;
-    for (char c : text) {
-        width += c == ' ' ? 3.0f * scale : 6.0f * scale;
-    }
-    return width;
 }
 
 static void updateMushroom(Mushroom& mushroom, float dt) {
@@ -892,8 +820,12 @@ int main() {
 
     TextureInfo floorTexture;
     TextureInfo visitedTexture;
+    TextureInfo backgroundTexture;
+    TextureInfo moonOverlayTexture;
     if (!loadImageFromKnownPaths(floorTexture, config.tilesetPath) ||
-        !loadImageFromKnownPaths(visitedTexture, config.visitedTilesetPath)) {
+        !loadImageFromKnownPaths(visitedTexture, config.visitedTilesetPath) ||
+        !loadImageFromKnownPaths(backgroundTexture, "assets/tex/craftpix-net-942044-free-moon-pixel-game-backgrounds/1 background/1.png") ||
+        !loadImageFromKnownPaths(moonOverlayTexture, "assets/tex/craftpix-net-942044-free-moon-pixel-game-backgrounds/1 background/2.png")) {
         glfwTerminate();
         return 1;
     }
@@ -909,10 +841,11 @@ int main() {
     SpriteSheet witchRun;
     SpriteSheet witchDeath;
     SpriteSheet mushroomRun;
-    std::array<SpriteSheet, 3> treeSheets;
+    std::array<SpriteSheet, 5> treeSheets;
     std::array<SpriteSheet, 4> crystalSheets;
     TextureInfo victoryImage;
     TextureInfo defeatImage;
+    TextureInfo restartExitImage;
 
     if (!loadSheetFromKnownPaths(witchRun, "assets/sprites/Blue Witch/Blue_witch/B_witch_run.png", 32, 48, false) ||
         !loadSheetFromKnownPaths(witchDeath, "assets/sprites/Blue Witch/Blue_witch/B_witch_death.png", 32, 40, false) ||
@@ -920,24 +853,28 @@ int main() {
         !loadImageFromKnownPaths(treeSheets[0].texture, "assets/tex/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Animation1.png") ||
         !loadImageFromKnownPaths(treeSheets[1].texture, "assets/tex/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Animation2.png") ||
         !loadImageFromKnownPaths(treeSheets[2].texture, "assets/tex/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Animation3.png") ||
+        !loadImageFromKnownPaths(treeSheets[3].texture, "assets/tex/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Animation4.png") ||
+        !loadImageFromKnownPaths(treeSheets[4].texture, "assets/tex/craftpix-net-695666-free-undead-tileset-top-down-pixel-art/PNG/Animation5.png") ||
         !loadSheetFromKnownPaths(crystalSheets[0], "assets/sprites/Crystal_Animation/Red/red_crystal_0000.png", 64, 64, true) ||
         !loadSheetFromKnownPaths(crystalSheets[1], "assets/sprites/Crystal_Animation/Red/red_crystal_0001.png", 64, 64, true) ||
         !loadSheetFromKnownPaths(crystalSheets[2], "assets/sprites/Crystal_Animation/Red/red_crystal_0002.png", 64, 64, true) ||
         !loadSheetFromKnownPaths(crystalSheets[3], "assets/sprites/Crystal_Animation/Red/red_crystal_0003.png", 64, 64, true) ||
-        !loadImageFromKnownPaths(victoryImage, "assets/tex/vitoria-lol.png") ||
-        !loadImageFromKnownPaths(defeatImage, "assets/tex/derrota-lol.png")) {
+        !loadImageFromKnownPaths(victoryImage, "src/Exercicios/GrauB/win.png") ||
+        !loadImageFromKnownPaths(defeatImage, "src/Exercicios/GrauB/game-over.png") ||
+        !loadImageFromKnownPaths(restartExitImage, "src/Exercicios/GrauB/restart-exit.png")) {
         glfwTerminate();
         return 1;
     }
     witchDeath.maxFrame = witchDeath.frameCount - 1;
-    for (SpriteSheet& treeSheet : treeSheets) {
+    for (std::size_t i = 0; i < treeSheets.size(); ++i) {
+        SpriteSheet& treeSheet = treeSheets[i];
         treeSheet.frameCols = 6;
         treeSheet.frameRows = 3;
         treeSheet.frameWidth = treeSheet.texture.width / 6;
         treeSheet.frameHeight = treeSheet.texture.height / 3;
-        treeSheet.frameCount = 3;
-        treeSheet.maxFrame = 2;
-        treeSheet.horizontal = false;
+        treeSheet.frameCount = i >= 3 ? 6 : 3;
+        treeSheet.maxFrame = treeSheet.frameCount - 1;
+        treeSheet.horizontal = i >= 3;
     }
 
     GLuint vao = 0;
@@ -1006,7 +943,11 @@ int main() {
     float deathTimer = 0.0f;
     float crystalTimer = 0.0f;
     float moveCooldown = 0.0f;
+    float treeAnimTimer = 0.0f;
+    float cursedTreeAnimTimer = 0.0f;
     int crystalFrame = 0;
+    int treeAnimationFrame = 0;
+    int cursedTreeAnimationFrame = 0;
     int collectedCrystals = 0;
     const int crystalsToWin = std::min(kCrystalsToWin, static_cast<int>(crystals.size()));
     double previousTime = glfwGetTime();
@@ -1043,6 +984,10 @@ int main() {
             witch.frame = 0;
             witch.animTimer = 0.0f;
             witch.frameTime = 0.13f;
+            treeAnimTimer = 0.0f;
+            cursedTreeAnimTimer = 0.0f;
+            treeAnimationFrame = 0;
+            cursedTreeAnimationFrame = 0;
             deathTimer = 0.0f;
             glfwSetWindowTitle(window, "Grau B - Tilemap Isometrico");
         }
@@ -1063,6 +1008,11 @@ int main() {
             }
         }
 
+        if (gameResult == GAME_PLAYING || gameResult == GAME_WON) {
+            updateFrameIndex(treeAnimTimer, treeAnimationFrame, dt, 0.18f, 2);
+            updateFrameIndex(cursedTreeAnimTimer, cursedTreeAnimationFrame, dt, 0.12f, 5);
+        }
+
         if (gameResult == GAME_PLAYING) {
             for (Mushroom& mushroom : mushrooms) {
                 updateMushroom(mushroom, dt);
@@ -1074,7 +1024,6 @@ int main() {
             witch.sheet = &witchRun;
             witch.frameTime = 0.13f;
             updateActorAnimation(witch, dt);
-            updateActorAnimationRange(treeActor, dt, 0, 2);
 
             bool hitEnemy = false;
             for (const Mushroom& mushroom : mushrooms) {
@@ -1126,7 +1075,6 @@ int main() {
             }
         } else if (gameResult == GAME_WON) {
             updateActorAnimation(witch, dt);
-            updateActorAnimationRange(treeActor, dt, 0, 2);
         }
 
         int screenW = 0;
@@ -1140,6 +1088,14 @@ int main() {
         glUniform2f(screenSizeLoc, static_cast<float>(screenW), static_cast<float>(screenH));
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(vao);
+
+        drawTextureScreen(backgroundTexture, vbo, offsetLoc, alphaLoc, useTextureLoc, spriteVertices,
+            0.0f, 0.0f, static_cast<float>(screenW), static_cast<float>(screenH), 1.0f);
+
+        const float moonOverlayW = static_cast<float>(moonOverlayTexture.width);
+        const float moonOverlayH = static_cast<float>(moonOverlayTexture.height);
+        drawTextureScreen(moonOverlayTexture, vbo, offsetLoc, alphaLoc, useTextureLoc, spriteVertices,
+            static_cast<float>(screenW) - moonOverlayW, 0.0f, moonOverlayW, moonOverlayH, 1.0f);
 
         drawMap(config, map, visitedTiles, floorTexture, visitedTexture, vbo, offsetLoc, alphaLoc, useTextureLoc, tileVertices);
 
@@ -1157,16 +1113,26 @@ int main() {
         }
 
         for (const GridPos& tree : config.trees) {
-            const int treeTypeIndex = std::max(0, std::min(2, tree.type - 1));
+            const int treeTypeIndex = std::max(0, std::min(4, tree.type - 1));
             treeActor.sheet = &treeSheets[treeTypeIndex];
-            treeActor.drawWidth = static_cast<float>(treeActor.sheet->frameWidth);
-            treeActor.drawHeight = static_cast<float>(treeActor.sheet->frameHeight);
+            treeActor.frame = treeTypeIndex >= 3 ? cursedTreeAnimationFrame : treeAnimationFrame;
+            treeActor.drawWidth = static_cast<float>(treeActor.sheet->frameWidth) * kTreeVisualScale;
+            treeActor.drawHeight = static_cast<float>(treeActor.sheet->frameHeight) * kTreeVisualScale;
             treeActor.anchorX = treeActor.drawWidth * 0.5f;
             treeActor.anchorY = treeActor.drawHeight - 8.0f;
-            const float treeSplitY = treeActor.drawHeight * 0.62f;
+            const float treeSplitY = static_cast<float>(treeActor.sheet->frameHeight) * 0.62f;
             treeActor.col = static_cast<float>(tree.col);
             treeActor.row = static_cast<float>(tree.row);
-            drawTreeActor(treeActor, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, treeSplitY, treeActor.drawHeight);
+            drawTreeActor(
+                treeActor,
+                shaderProgram,
+                vbo,
+                offsetLoc,
+                alphaLoc,
+                spriteVertices,
+                treeSplitY,
+                static_cast<float>(treeActor.sheet->frameHeight)
+            );
         }
 
         for (const Mushroom& mushroom : mushrooms) {
@@ -1176,13 +1142,14 @@ int main() {
         drawActor(witch, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
 
         for (const GridPos& tree : config.trees) {
-            const int treeTypeIndex = std::max(0, std::min(2, tree.type - 1));
+            const int treeTypeIndex = std::max(0, std::min(4, tree.type - 1));
             treeActor.sheet = &treeSheets[treeTypeIndex];
-            treeActor.drawWidth = static_cast<float>(treeActor.sheet->frameWidth);
-            treeActor.drawHeight = static_cast<float>(treeActor.sheet->frameHeight);
+            treeActor.frame = treeTypeIndex >= 3 ? cursedTreeAnimationFrame : treeAnimationFrame;
+            treeActor.drawWidth = static_cast<float>(treeActor.sheet->frameWidth) * kTreeVisualScale;
+            treeActor.drawHeight = static_cast<float>(treeActor.sheet->frameHeight) * kTreeVisualScale;
             treeActor.anchorX = treeActor.drawWidth * 0.5f;
             treeActor.anchorY = treeActor.drawHeight - 8.0f;
-            const float treeSplitY = treeActor.drawHeight * 0.62f;
+            const float treeSplitY = static_cast<float>(treeActor.sheet->frameHeight) * 0.62f;
             treeActor.col = static_cast<float>(tree.col);
             treeActor.row = static_cast<float>(tree.row);
             drawTreeActor(treeActor, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 0.0f, treeSplitY);
@@ -1192,23 +1159,37 @@ int main() {
 
         if (gameResult == GAME_WON || gameResult == GAME_LOST) {
             drawScreenRect(shaderProgram, vbo, offsetLoc, alphaLoc, useTextureLoc, colorLoc, spriteVertices,
-                0.0f, 0.0f, static_cast<float>(screenW), static_cast<float>(screenH), 0.0f, 0.0f, 0.0f, 0.72f);
+                0.0f, 0.0f, static_cast<float>(screenW), static_cast<float>(screenH), 1.0f, 1.0f, 1.0f, 0.86f);
 
+            const bool isVictoryScreen = gameResult == GAME_WON;
             const TextureInfo& endImage = gameResult == GAME_WON ? victoryImage : defeatImage;
             const float maxW = 430.0f;
             const float maxH = 430.0f;
-            const float scale = std::min(maxW / static_cast<float>(endImage.width), maxH / static_cast<float>(endImage.height));
-            const float imageW = static_cast<float>(endImage.width) * scale;
-            const float imageH = static_cast<float>(endImage.height) * scale;
-            const float imageX = (static_cast<float>(screenW) - imageW) * 0.5f;
-            const float imageY = 58.0f;
+            const float frameX = (static_cast<float>(screenW) - maxW) * 0.5f;
+            const float frameY = 58.0f;
+            const float baseScale = std::min(maxW / static_cast<float>(endImage.width), maxH / static_cast<float>(endImage.height));
+            const float imageScale = isVictoryScreen ? baseScale * 0.7f : baseScale;
+            const float imageW = static_cast<float>(endImage.width) * imageScale;
+            const float imageH = static_cast<float>(endImage.height) * imageScale;
+            const float imageX = frameX + (maxW - imageW) * 0.5f;
+            const float imageY = frameY + (maxH - imageH) * 0.5f;
 
             drawTextureScreen(endImage, vbo, offsetLoc, alphaLoc, useTextureLoc, spriteVertices,
                 imageX, imageY, imageW, imageH, 1.0f);
-            const float messageScale = 5.0f;
-            const float messageX = (static_cast<float>(screenW) - measureMessageText(messageScale)) * 0.5f;
-            drawMessageText(shaderProgram, vbo, offsetLoc, alphaLoc, useTextureLoc, colorLoc, spriteVertices,
-                messageX, imageY + imageH + 28.0f, messageScale);
+
+            const float restartMaxW = 380.0f;
+            const float restartMaxH = 140.0f;
+            const float restartScale = std::min(
+                restartMaxW / static_cast<float>(restartExitImage.width),
+                restartMaxH / static_cast<float>(restartExitImage.height)
+            );
+            const float restartW = static_cast<float>(restartExitImage.width) * restartScale;
+            const float restartH = static_cast<float>(restartExitImage.height) * restartScale;
+            const float restartX = (static_cast<float>(screenW) - restartW) * 0.5f;
+            const float restartY = frameY + maxH + 28.0f;
+
+            drawTextureScreen(restartExitImage, vbo, offsetLoc, alphaLoc, useTextureLoc, spriteVertices,
+                restartX, restartY, restartW, restartH, 1.0f);
         }
 
         glfwSwapBuffers(window);
@@ -1220,6 +1201,8 @@ int main() {
     glDeleteProgram(shaderProgram);
     glDeleteTextures(1, &floorTexture.id);
     glDeleteTextures(1, &visitedTexture.id);
+    glDeleteTextures(1, &backgroundTexture.id);
+    glDeleteTextures(1, &moonOverlayTexture.id);
     glDeleteTextures(1, &witchRun.texture.id);
     glDeleteTextures(1, &witchDeath.texture.id);
     glDeleteTextures(1, &mushroomRun.texture.id);
@@ -1228,6 +1211,7 @@ int main() {
     }
     glDeleteTextures(1, &victoryImage.id);
     glDeleteTextures(1, &defeatImage.id);
+    glDeleteTextures(1, &restartExitImage.id);
     for (SpriteSheet& crystalSheet : crystalSheets) {
         glDeleteTextures(1, &crystalSheet.texture.id);
     }
