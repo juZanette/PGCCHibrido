@@ -25,6 +25,12 @@ constexpr int kCrystalsToWin = 4;
 constexpr float kMoveCooldownSeconds = 0.16f;
 constexpr float kSceneScale = 0.80f;
 constexpr float kTreeVisualScale = 1.20f;
+constexpr float kWitchDrawWidth = 62.4f;
+constexpr float kWitchDrawHeight = 78.0f;
+constexpr float kWitchAnchorX = 31.2f;
+constexpr float kWitchAnchorY = 71.5f;
+constexpr float kWitchDeathDrawHeight = 70.2f;
+constexpr float kWitchDeathAnchorY = 63.7f;
 
 static DiamondView g_tileView;
 static int gMapCols = 15;
@@ -459,6 +465,34 @@ static void drawActor(
     glUniform1f(alphaLoc, alpha);
     glUniform1i(glGetUniformLocation(shaderProgram, "uUseTexture"), 1);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+}
+
+static void drawActorWithYOffset(
+    const Actor& actor,
+    GLuint shaderProgram,
+    GLuint vbo,
+    GLint offsetLoc,
+    GLint alphaLoc,
+    std::vector<float>& vertices,
+    float alpha,
+    float offsetY
+) {
+    const Vec2 screen = tileToScreen(actor.col, actor.row);
+    setSpriteFrameVertices(vertices, actor);
+    glBindTexture(GL_TEXTURE_2D, actor.sheet->texture.id);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * vertices.size(), vertices.data());
+    glUniform2f(offsetLoc, screen.x, screen.y + offsetY);
+    glUniform1f(alphaLoc, alpha);
+    glUniform1i(glGetUniformLocation(shaderProgram, "uUseTexture"), 1);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+}
+
+static float witchDeathFrameOffsetY(int frame, float drawHeight) {
+    static const int kFrameBottoms[12] = { 39, 39, 39, 39, 25, 33, 39, 33, 39, 39, 39, 33 };
+    const int safeFrame = std::max(0, std::min(frame, 11));
+    const float sourceDelta = 39.0f - static_cast<float>(kFrameBottoms[safeFrame]);
+    return sourceDelta * (drawHeight / 40.0f) * kSceneScale;
 }
 
 static void drawTreeActor(
@@ -912,8 +946,8 @@ int main() {
         static_cast<float>(config.witchStart.col),
         static_cast<float>(config.witchStart.row),
         &witchRun,
-        62.4f, 78.0f,
-        31.2f, 71.5f,
+        kWitchDrawWidth, kWitchDrawHeight,
+        kWitchAnchorX, kWitchAnchorY,
         0.13f, 0.0f, 0,
         false
     };
@@ -977,10 +1011,10 @@ int main() {
             witch.sheet = &witchRun;
             witch.col = static_cast<float>(config.witchStart.col);
             witch.row = static_cast<float>(config.witchStart.row);
-            witch.drawWidth = 62.4f;
-            witch.drawHeight = 78.0f;
-            witch.anchorX = 31.2f;
-            witch.anchorY = 71.5f;
+            witch.drawWidth = kWitchDrawWidth;
+            witch.drawHeight = kWitchDrawHeight;
+            witch.anchorX = kWitchAnchorX;
+            witch.anchorY = kWitchAnchorY;
             witch.frame = 0;
             witch.animTimer = 0.0f;
             witch.frameTime = 0.13f;
@@ -1036,12 +1070,12 @@ int main() {
             if (hitEnemy) {
                 witchState = WITCH_DYING;
                 witch.sheet = &witchDeath;
-                witch.drawWidth = 62.4f;
-                witch.drawHeight = 70.2f;
-                witch.anchorX = 31.2f;
-                witch.anchorY = 63.7f;
+                witch.drawWidth = kWitchDrawWidth;
+                witch.drawHeight = kWitchDeathDrawHeight;
+                witch.anchorX = kWitchAnchorX;
+                witch.anchorY = kWitchDeathAnchorY;
                 witch.frameTime = 0.22f;
-                witch.frame = 0;
+                witch.frame = witchDeath.maxFrame;
                 witch.animTimer = 0.0f;
                 deathTimer = 0.0f;
                 crystalFrame = 0;
@@ -1065,7 +1099,6 @@ int main() {
             }
         } else if (witchState == WITCH_DYING) {
             deathTimer += dt;
-            updateActorAnimation(witch, dt, true);
 
             if (deathTimer >= 3.4f) {
                 gameResult = GAME_LOST;
@@ -1139,7 +1172,20 @@ int main() {
             drawActor(mushroom.actor, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
         }
 
-        drawActor(witch, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
+        if (witchState == WITCH_DYING) {
+            drawActorWithYOffset(
+                witch,
+                shaderProgram,
+                vbo,
+                offsetLoc,
+                alphaLoc,
+                spriteVertices,
+                1.0f,
+                witchDeathFrameOffsetY(witch.frame, witch.drawHeight)
+            );
+        } else {
+            drawActor(witch, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
+        }
 
         for (const GridPos& tree : config.trees) {
             const int treeTypeIndex = std::max(0, std::min(4, tree.type - 1));
