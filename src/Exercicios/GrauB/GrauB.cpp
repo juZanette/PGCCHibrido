@@ -19,11 +19,12 @@
 
 namespace {
 
-constexpr int kWindowWidth = 1280;
-constexpr int kWindowHeight = 800;
+// Constantes gerais da cena, do personagem e das animacoes.
+constexpr int kWindowWidth = 1400;
+constexpr int kWindowHeight = 900;
 constexpr int kCrystalsToWin = 4;
 constexpr float kMoveCooldownSeconds = 0.16f;
-constexpr float kSceneScale = 0.80f;
+constexpr float kSceneScale = 0.90f;
 constexpr float kTreeVisualScale = 1.20f;
 constexpr float kWitchDrawWidth = 62.4f;
 constexpr float kWitchDrawHeight = 78.0f;
@@ -33,19 +34,17 @@ constexpr float kWitchDeathDrawHeight = 70.2f;
 constexpr float kWitchDeathAnchorY = 63.7f;
 
 static DiamondView g_tileView;
-static int gMapCols = 15;
-static int gMapRows = 15;
-static float gTileW = 74.88f;
-static float gTileH = 37.44f;
 static int gScreenW = kWindowWidth;
 static int gScreenH = kWindowHeight;
 
+// Representa uma posicao inteira no grid do mapa.
 struct GridPos {
     int col;
     int row;
     int type = 1;
 };
 
+// Descreve o movimento configuravel de cada inimigo no arquivo de mapa.
 struct MushroomConfig {
     float startCol;
     float startRow;
@@ -56,10 +55,15 @@ struct MushroomConfig {
     float direction;
 };
 
+// Reune toda a configuracao carregada do map.txt.
 struct GameConfig {
     std::string tilesetPath;
     int tilesetCols = 3;
     int tilesetRows = 6;
+    int cols = 15;
+    int rows = 15;
+    float tileWidth = 74.88f;
+    float tileHeight = 37.44f;
     std::string visitedTilesetPath;
     int visitedTilesetCols = 3;
     int visitedTilesetRows = 6;
@@ -72,14 +76,17 @@ struct GameConfig {
     std::vector<MushroomConfig> mushrooms;
 };
 
-static int indexOf(int col, int row) {
-    return col + row * gMapCols;
+// Converte coordenadas 2D do grid para um indice linear nos vetores auxiliares.
+static int indexOf(const GameConfig& config, int col, int row) {
+    return col + row * config.cols;
 }
 
-static bool inBounds(int col, int row) {
-    return col >= 0 && col < gMapCols && row >= 0 && row < gMapRows;
+// Garante que a posicao consultada existe dentro do mapa carregado.
+static bool inBounds(const GameConfig& config, int col, int row) {
+    return col >= 0 && col < config.cols && row >= 0 && row < config.rows;
 }
 
+// Remove espacos extras para facilitar o parse do arquivo de configuracao.
 static std::string trim(const std::string& text) {
     const std::size_t first = text.find_first_not_of(" \t\r\n");
     if (first == std::string::npos) {
@@ -89,6 +96,7 @@ static std::string trim(const std::string& text) {
     return text.substr(first, last - first + 1);
 }
 
+// Le a proxima linha util do arquivo, ignorando vazias e comentarios.
 static bool readConfigLine(std::istream& input, std::string& line) {
     while (std::getline(input, line)) {
         line = trim(line);
@@ -99,6 +107,7 @@ static bool readConfigLine(std::istream& input, std::string& line) {
     return false;
 }
 
+// Le uma matriz inteira do arquivo, usada para MAP e WALKABLE.
 static bool readMatrix(std::istream& input, int width, int height, std::vector<int>& values) {
     values.clear();
     std::string line;
@@ -121,18 +130,21 @@ static bool readMatrix(std::istream& input, int width, int height, std::vector<i
     return static_cast<int>(values.size()) == width * height;
 }
 
+// Verifica se existe uma arvore ocupando o tile informado.
 static bool hasTree(const GameConfig& config, int col, int row) {
     return std::any_of(config.trees.begin(), config.trees.end(), [col, row](const GridPos& tree) {
         return tree.col == col && tree.row == row;
     });
 }
 
+// Define se a bruxa pode pisar no tile considerando limites, bloqueio e arvores.
 static bool isTileWalkable(const GameConfig& config, int col, int row) {
-    return inBounds(col, row) &&
-        config.walkable[indexOf(col, row)] != 0 &&
+    return inBounds(config, col, row) &&
+        config.walkable[indexOf(config, col, row)] != 0 &&
         !hasTree(config, col, row);
 }
 
+// Carrega todos os blocos do map.txt e monta o estado inicial da fase.
 static bool loadGameConfig(GameConfig& config, const std::string& filePath) {
     std::ifstream file(filePath);
     if (!file) {
@@ -145,37 +157,44 @@ static bool loadGameConfig(GameConfig& config, const std::string& filePath) {
         std::string keyword;
         stream >> keyword;
 
+        // Tileset principal usado para desenhar o piso base.
         if (keyword == "TILESET") {
-            stream >> std::quoted(config.tilesetPath) >> config.tilesetCols >> config.tilesetRows >> gTileW >> gTileH;
+            stream >> std::quoted(config.tilesetPath) >> config.tilesetCols >> config.tilesetRows >> config.tileWidth >> config.tileHeight;
+        // Tileset alternativo usado para marcar tiles ja visitados.
         } else if (keyword == "VISITED_TILESET") {
             stream >> std::quoted(config.visitedTilesetPath) >> config.visitedTilesetCols >> config.visitedTilesetRows >> config.visitedTileIndex;
+        // Define as dimensoes do mapa.
         } else if (keyword == "SIZE") {
-            stream >> gMapCols >> gMapRows;
-            config.map = TileMap(gMapCols, gMapRows, 0);
-            config.walkable.assign(gMapCols * gMapRows, 1);
+            stream >> config.cols >> config.rows;
+            config.map = TileMap(config.cols, config.rows, 0);
+            config.walkable.assign(config.cols * config.rows, 1);
+        // Le os indices de cada tile do chao.
         } else if (keyword == "MAP") {
             std::vector<int> values;
-            if (!readMatrix(file, gMapCols, gMapRows, values)) {
+            if (!readMatrix(file, config.cols, config.rows, values)) {
                 std::cerr << "Erro lendo matriz MAP em " << filePath << std::endl;
                 return false;
             }
-            for (int row = 0; row < gMapRows; ++row) {
-                for (int col = 0; col < gMapCols; ++col) {
-                    config.map.setTile(col, row, static_cast<unsigned char>(values[indexOf(col, row)]));
+            for (int row = 0; row < config.rows; ++row) {
+                for (int col = 0; col < config.cols; ++col) {
+                    config.map.setTile(col, row, static_cast<unsigned char>(values[indexOf(config, col, row)]));
                 }
             }
+        // Le a matriz que informa por onde o personagem pode andar.
         } else if (keyword == "WALKABLE") {
             std::vector<int> values;
-            if (!readMatrix(file, gMapCols, gMapRows, values)) {
+            if (!readMatrix(file, config.cols, config.rows, values)) {
                 std::cerr << "Erro lendo matriz WALKABLE em " << filePath << std::endl;
                 return false;
             }
-            config.walkable.resize(gMapCols * gMapRows);
+            config.walkable.resize(config.cols * config.rows);
             for (std::size_t i = 0; i < values.size(); ++i) {
                 config.walkable[i] = values[i] == 0 ? 0 : 1;
             }
+        // Posicao inicial do personagem.
         } else if (keyword == "WITCH") {
             stream >> config.witchStart.col >> config.witchStart.row;
+        // Obstaculos estaticos que tambem bloqueiam movimento.
         } else if (keyword == "TREES") {
             int count = 0;
             stream >> count;
@@ -191,10 +210,11 @@ static bool loadGameConfig(GameConfig& config, const std::string& filePath) {
                     tree.type = 1;
                 }
                 tree.type = std::max(1, std::min(5, tree.type));
-                if (inBounds(tree.col, tree.row)) {
+                if (inBounds(config, tree.col, tree.row)) {
                     config.trees.push_back(tree);
                 }
             }
+        // Coletaveis necessarios para vencer a partida.
         } else if (keyword == "CRYSTALS") {
             int count = 0;
             stream >> count;
@@ -213,6 +233,7 @@ static bool loadGameConfig(GameConfig& config, const std::string& filePath) {
                               << crystal.col << ", " << crystal.row << std::endl;
                 }
             }
+        // Inimigos que percorrem um caminho linear entre dois pontos.
         } else if (keyword == "MUSHROOMS") {
             int count = 0;
             stream >> count;
@@ -230,7 +251,8 @@ static bool loadGameConfig(GameConfig& config, const std::string& filePath) {
         }
     }
 
-    if (gMapCols < 15 || gMapRows < 15) {
+    // Valida o enunciado e normaliza tiles bloqueados pelas arvores.
+    if (config.cols < 15 || config.rows < 15) {
         std::cerr << "O mapa precisa ter pelo menos 15x15 tiles." << std::endl;
         return false;
     }
@@ -241,12 +263,13 @@ static bool loadGameConfig(GameConfig& config, const std::string& filePath) {
     }
 
     for (const GridPos& tree : config.trees) {
-        config.walkable[indexOf(tree.col, tree.row)] = 0;
+        config.walkable[indexOf(config, tree.col, tree.row)] = 0;
     }
 
     return isTileWalkable(config, config.witchStart.col, config.witchStart.row);
 }
 
+// Tenta localizar o arquivo de configuracao em alguns caminhos conhecidos.
 static bool loadConfigFromKnownPaths(GameConfig& config) {
     const std::array<std::string, 4> paths = {
         "src/Exercicios/GrauB/map.txt",
@@ -266,30 +289,40 @@ static bool loadConfigFromKnownPaths(GameConfig& config) {
     return false;
 }
 
+// Mantem o viewport sincronizado quando a janela muda de tamanho.
 static void framebufferSizeCallback(GLFWwindow*, int width, int height) {
     gScreenW = width;
     gScreenH = height;
     glViewport(0, 0, width, height);
 }
 
-static Vec2 tileToScreen(float col, float row) {
+// Converte uma posicao do grid para coordenadas de tela em projecao isometrica.
+static Vec2 tileToScreen(const GameConfig& config, float col, float row) {
     float x = 0.0f;
     float y = 0.0f;
-    const float scaledTileW = gTileW * kSceneScale;
-    const float scaledTileH = gTileH * kSceneScale;
+    const float scaledTileW = config.tileWidth * kSceneScale;
+    const float scaledTileH = config.tileHeight * kSceneScale;
     const float originX = (static_cast<float>(gScreenW) * 0.5f)
-        - ((static_cast<float>(gMapCols - gMapRows) * scaledTileW) * 0.25f);
-    const float diamondCenterYOffset = (static_cast<float>(gMapCols + gMapRows - 2) * scaledTileH) * 0.25f;
+        - ((static_cast<float>(config.cols - config.rows) * scaledTileW) * 0.25f);
+    const float diamondCenterYOffset = (static_cast<float>(config.cols + config.rows - 2) * scaledTileH) * 0.25f;
     const float originY = (static_cast<float>(gScreenH) * 0.5f) - diamondCenterYOffset;
     g_tileView.computeDrawPosition(col, row, scaledTileW, scaledTileH, originX, originY, x, y);
     return { x, y };
 }
 
-static Vec2 tileToScreen(int col, int row) {
-    return tileToScreen(static_cast<float>(col), static_cast<float>(row));
+static Vec2 tileToScreen(const GameConfig& config, int col, int row) {
+    return tileToScreen(config, static_cast<float>(col), static_cast<float>(row));
 }
 
-static void setTileUv(std::vector<float>& vertices, int tileIndex, const TextureInfo& texture, int tilesetCols, int tilesetRows) {
+// Calcula os vertices e UVs de um tile do tileset.
+static void setTileUv(
+    const GameConfig& config,
+    std::vector<float>& vertices,
+    int tileIndex,
+    const TextureInfo& texture,
+    int tilesetCols,
+    int tilesetRows
+) {
     const int safeTilesetCols = std::max(1, tilesetCols);
     const int safeTilesetRows = std::max(1, tilesetRows);
     const int tilesetCol = tileIndex % safeTilesetCols;
@@ -305,8 +338,8 @@ static void setTileUv(std::vector<float>& vertices, int tileIndex, const Texture
     const float u1 = (static_cast<float>(tilesetCol + 1) * cellW) / static_cast<float>(texture.width) - halfTexelU;
     const float v1 = (static_cast<float>(tilesetRow + 1) * cellH) / static_cast<float>(texture.height) - halfTexelV;
 
-    const float scaledTileW = gTileW * kSceneScale;
-    const float scaledTileH = gTileH * kSceneScale;
+    const float scaledTileW = config.tileWidth * kSceneScale;
+    const float scaledTileH = config.tileHeight * kSceneScale;
 
     vertices = {
         -scaledTileW * 0.5f, -scaledTileH * 0.5f, u0, v0,
@@ -316,6 +349,7 @@ static void setTileUv(std::vector<float>& vertices, int tileIndex, const Texture
     };
 }
 
+// Calcula os vertices do frame atual de qualquer sprite animado.
 static void setSpriteFrameVertices(std::vector<float>& vertices, const Actor& actor) {
     const SpriteSheet& sheet = *actor.sheet;
     const int lastFrame = std::min(sheet.maxFrame, sheet.frameCount - 1);
@@ -365,45 +399,7 @@ static void setSpriteFrameVertices(std::vector<float>& vertices, const Actor& ac
     };
 }
 
-static void setGridCellVertices(
-    std::vector<float>& vertices,
-    const Actor& actor,
-    int gridCol,
-    int gridRow,
-    int totalCols,
-    int totalRows
-) {
-    const SpriteSheet& sheet = *actor.sheet;
-    const float halfTexelU = 0.5f / static_cast<float>(sheet.texture.width);
-    const float halfTexelV = 0.5f / static_cast<float>(sheet.texture.height);
-
-    const int x0 = static_cast<int>(std::round((static_cast<float>(gridCol) * sheet.texture.width) / totalCols));
-    const int y0 = static_cast<int>(std::round((static_cast<float>(gridRow) * sheet.texture.height) / totalRows));
-    const int x1 = static_cast<int>(std::round((static_cast<float>(gridCol + 1) * sheet.texture.width) / totalCols));
-    const int y1 = static_cast<int>(std::round((static_cast<float>(gridRow + 1) * sheet.texture.height) / totalRows));
-
-    float u0 = x0 / static_cast<float>(sheet.texture.width) + halfTexelU;
-    float v0 = y0 / static_cast<float>(sheet.texture.height) + halfTexelV;
-    float u1 = x1 / static_cast<float>(sheet.texture.width) - halfTexelU;
-    float v1 = y1 / static_cast<float>(sheet.texture.height) - halfTexelV;
-
-    if (actor.flipX) {
-        std::swap(u0, u1);
-    }
-
-    const float left = -actor.anchorX * kSceneScale;
-    const float top = -actor.anchorY * kSceneScale;
-    const float right = (actor.drawWidth - actor.anchorX) * kSceneScale;
-    const float bottom = (actor.drawHeight - actor.anchorY) * kSceneScale;
-
-    vertices = {
-        left,  top,    u0, v0,
-        right, top,    u1, v0,
-        right, bottom, u1, v1,
-        left,  bottom, u0, v1
-    };
-}
-
+// Monta um quad retangular simples, usado para UI e overlays.
 static void setSolidQuadVertices(std::vector<float>& vertices, float width, float height) {
     vertices = {
         0.0f,  0.0f,   0.0f, 0.0f,
@@ -413,10 +409,7 @@ static void setSolidQuadVertices(std::vector<float>& vertices, float width, floa
     };
 }
 
-static void setTextureQuadVertices(std::vector<float>& vertices, float width, float height) {
-    setSolidQuadVertices(vertices, width, height);
-}
-
+// Avanca a animacao de um ator respeitando o tempo de cada frame.
 static void updateActorAnimation(Actor& actor, float dt, bool holdLastFrame = false) {
     actor.animTimer += dt;
     while (actor.animTimer >= actor.frameTime) {
@@ -430,15 +423,7 @@ static void updateActorAnimation(Actor& actor, float dt, bool holdLastFrame = fa
     }
 }
 
-static void updateActorAnimationRange(Actor& actor, float dt, int firstFrame, int lastFrame) {
-    actor.frame = std::max(firstFrame, std::min(actor.frame, lastFrame));
-    actor.animTimer += dt;
-    while (actor.animTimer >= actor.frameTime) {
-        actor.animTimer -= actor.frameTime;
-        actor.frame = actor.frame >= lastFrame ? firstFrame : actor.frame + 1;
-    }
-}
-
+// Avanca um contador generico de frame para animacoes simples.
 static void updateFrameIndex(float& timer, int& frame, float dt, float frameTime, int lastFrame) {
     timer += dt;
     while (timer >= frameTime) {
@@ -447,7 +432,9 @@ static void updateFrameIndex(float& timer, int& frame, float dt, float frameTime
     }
 }
 
+// Desenha um ator na tela na posicao atual do tilemap.
 static void drawActor(
+    const GameConfig& config,
     const Actor& actor,
     GLuint shaderProgram,
     GLuint vbo,
@@ -456,7 +443,7 @@ static void drawActor(
     std::vector<float>& vertices,
     float alpha
 ) {
-    const Vec2 screen = tileToScreen(actor.col, actor.row);
+    const Vec2 screen = tileToScreen(config, actor.col, actor.row);
     setSpriteFrameVertices(vertices, actor);
     glBindTexture(GL_TEXTURE_2D, actor.sheet->texture.id);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -467,7 +454,9 @@ static void drawActor(
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
+// Variante usada quando a animacao precisa de um ajuste vertical fino.
 static void drawActorWithYOffset(
+    const GameConfig& config,
     const Actor& actor,
     GLuint shaderProgram,
     GLuint vbo,
@@ -477,7 +466,7 @@ static void drawActorWithYOffset(
     float alpha,
     float offsetY
 ) {
-    const Vec2 screen = tileToScreen(actor.col, actor.row);
+    const Vec2 screen = tileToScreen(config, actor.col, actor.row);
     setSpriteFrameVertices(vertices, actor);
     glBindTexture(GL_TEXTURE_2D, actor.sheet->texture.id);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -488,6 +477,7 @@ static void drawActorWithYOffset(
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
+// Corrige visualmente o alinhamento dos frames da morte da bruxa.
 static float witchDeathFrameOffsetY(int frame, float drawHeight) {
     static const int kFrameBottoms[12] = { 39, 39, 39, 39, 25, 33, 39, 33, 39, 39, 39, 33 };
     const int safeFrame = std::max(0, std::min(frame, 11));
@@ -495,7 +485,9 @@ static float witchDeathFrameOffsetY(int frame, float drawHeight) {
     return sourceDelta * (drawHeight / 40.0f) * kSceneScale;
 }
 
+// Desenha arvores em duas passadas para permitir profundidade com o personagem.
 static void drawTreeActor(
+    const GameConfig& config,
     const Actor& actor,
     GLuint shaderProgram,
     GLuint vbo,
@@ -505,7 +497,7 @@ static void drawTreeActor(
     float sourceStartY,
     float sourceEndY
 ) {
-    const Vec2 screen = tileToScreen(actor.col, actor.row);
+    const Vec2 screen = tileToScreen(config, actor.col, actor.row);
     const SpriteSheet& sheet = *actor.sheet;
     const float sourceFrameHeight = static_cast<float>(sheet.frameHeight);
     const bool usesHorizontalFrames = sheet.frameCount > 3;
@@ -552,6 +544,7 @@ static void drawTreeActor(
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
+// Desenha retangulos coloridos usados na interface e no overlay final.
 static void drawScreenRect(
     GLuint shaderProgram,
     GLuint vbo,
@@ -579,6 +572,7 @@ static void drawScreenRect(
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
+// Desenha uma textura 2D diretamente na tela, fora do grid do mapa.
 static void drawTextureScreen(
     const TextureInfo& texture,
     GLuint vbo,
@@ -592,7 +586,7 @@ static void drawTextureScreen(
     float height,
     float alpha
 ) {
-    setTextureQuadVertices(vertices, width, height);
+    setSolidQuadVertices(vertices, width, height);
     glBindTexture(GL_TEXTURE_2D, texture.id);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * vertices.size(), vertices.data());
@@ -602,6 +596,7 @@ static void drawTextureScreen(
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
+// Renderiza um digito em estilo seven-segment para o contador de cristais.
 static void drawDigit(
     int value,
     GLuint shaderProgram,
@@ -650,6 +645,7 @@ static void drawDigit(
     }
 }
 
+// Desenha o contador de cristais coletados no canto da tela.
 static void drawCrystalCounter(
     int collected,
     int total,
@@ -667,6 +663,7 @@ static void drawCrystalCounter(
     drawDigit(total, shaderProgram, vbo, offsetLoc, alphaLoc, useTextureLoc, colorLoc, vertices, 100.0f, 24.0f, 1.38f);
 }
 
+// Atualiza a posicao do inimigo entre o ponto inicial e final do trajeto.
 static void updateMushroom(Mushroom& mushroom, float dt) {
     mushroom.progress += mushroom.direction * mushroom.speed * dt;
 
@@ -683,12 +680,14 @@ static void updateMushroom(Mushroom& mushroom, float dt) {
     mushroom.actor.flipX = ((mushroom.endCol - mushroom.startCol) * mushroom.direction) > 0.0f;
 }
 
+// Usa distancia simples entre centros para detectar choque entre atores.
 static bool isColliding(const Actor& a, const Actor& b) {
     const float dx = a.col - b.col;
     const float dy = a.row - b.row;
     return std::sqrt(dx * dx + dy * dy) < 0.75f;
 }
 
+// Tenta mover a bruxa um tile, atualizando o chao visitado quando o movimento e valido.
 static bool tryMove(
     const GameConfig& config,
     TileMap& map,
@@ -710,10 +709,11 @@ static bool tryMove(
     witch.row = static_cast<float>(nextRow);
     witch.flipX = deltaCol < 0;
     map.setTile(nextCol, nextRow, static_cast<unsigned char>(config.visitedTileIndex));
-    visitedTiles[indexOf(nextCol, nextRow)] = 1;
+    visitedTiles[indexOf(config, nextCol, nextRow)] = 1;
     return true;
 }
 
+// Traduz entradas do teclado em movimentos nas 8 direcoes permitidas.
 static bool handleMovement(
     GLFWwindow* window,
     const GameConfig& config,
@@ -748,6 +748,7 @@ static bool handleMovement(
     return false;
 }
 
+// Desenha o mapa em ordem diagonal para manter a sobreposicao isometrica correta.
 static void drawMap(
     const GameConfig& config,
     const TileMap& map,
@@ -763,22 +764,22 @@ static void drawMap(
     glUniform1f(alphaLoc, 1.0f);
     glUniform1i(useTextureLoc, 1);
 
-    for (int sum = 0; sum <= (gMapCols - 1) + (gMapRows - 1); ++sum) {
-        for (int row = 0; row < gMapRows; ++row) {
+    for (int sum = 0; sum <= (config.cols - 1) + (config.rows - 1); ++sum) {
+        for (int row = 0; row < config.rows; ++row) {
             const int col = sum - row;
-            if (!inBounds(col, row)) {
+            if (!inBounds(config, col, row)) {
                 continue;
             }
 
-            if (visitedTiles[indexOf(col, row)] != 0) {
+            if (visitedTiles[indexOf(config, col, row)] != 0) {
                 glBindTexture(GL_TEXTURE_2D, visitedTexture.id);
-                setTileUv(tileVertices, config.visitedTileIndex, visitedTexture, config.visitedTilesetCols, config.visitedTilesetRows);
+                setTileUv(config, tileVertices, config.visitedTileIndex, visitedTexture, config.visitedTilesetCols, config.visitedTilesetRows);
             } else {
                 glBindTexture(GL_TEXTURE_2D, floorTexture.id);
-                setTileUv(tileVertices, map.getTile(col, row), floorTexture, config.tilesetCols, config.tilesetRows);
+                setTileUv(config, tileVertices, map.getTile(col, row), floorTexture, config.tilesetCols, config.tilesetRows);
             }
 
-            const Vec2 screen = tileToScreen(col, row);
+            const Vec2 screen = tileToScreen(config, col, row);
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * tileVertices.size(), tileVertices.data());
             glUniform2f(offsetLoc, screen.x, screen.y);
@@ -787,6 +788,7 @@ static void drawMap(
     }
 }
 
+// Cria os cristais a partir das posicoes lidas do arquivo.
 static std::vector<Crystal> makeCrystals(const GameConfig& config) {
     std::vector<Crystal> crystals;
     for (const GridPos& pos : config.crystals) {
@@ -795,6 +797,7 @@ static std::vector<Crystal> makeCrystals(const GameConfig& config) {
     return crystals;
 }
 
+// Cria os inimigos moveis a partir da configuracao carregada.
 static std::vector<Mushroom> makeMushrooms(const GameConfig& config, SpriteSheet& mushroomRun) {
     std::vector<Mushroom> mushrooms;
     for (const MushroomConfig& item : config.mushrooms) {
@@ -817,11 +820,13 @@ static std::vector<Mushroom> makeMushrooms(const GameConfig& config, SpriteSheet
 }
 
 int main() {
+    // Carrega a fase e interrompe a execucao se a configuracao for invalida.
     GameConfig config;
     if (!loadConfigFromKnownPaths(config)) {
         return 1;
     }
 
+    // Inicializa janela e contexto OpenGL.
     if (!glfwInit()) {
         std::cerr << "Nao foi possivel iniciar GLFW." << std::endl;
         return 1;
@@ -852,6 +857,7 @@ int main() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glViewport(0, 0, kWindowWidth, kWindowHeight);
 
+    // Carrega texturas do mapa e do fundo da cena.
     TextureInfo floorTexture;
     TextureInfo visitedTexture;
     TextureInfo backgroundTexture;
@@ -864,6 +870,7 @@ int main() {
         return 1;
     }
 
+    // Compila o shader unico usado para mapa, sprites e interface.
     GLuint shaderProgram = createShaderProgramFromFiles("_geral_vs.glsl", "_geral_fs.glsl");
     if (shaderProgram == 0) {
         glfwTerminate();
@@ -872,6 +879,7 @@ int main() {
     glUseProgram(shaderProgram);
     glUniform1i(glGetUniformLocation(shaderProgram, "uTexture"), 0);
 
+    // Carrega todas as spritesheets e imagens da partida.
     SpriteSheet witchRun;
     SpriteSheet witchDeath;
     SpriteSheet mushroomRun;
@@ -911,6 +919,7 @@ int main() {
         treeSheet.horizontal = i >= 3;
     }
 
+    // Configura um unico quad reutilizado para todos os desenhos 2D.
     GLuint vao = 0;
     GLuint vbo = 0;
     GLuint ebo = 0;
@@ -929,9 +938,10 @@ int main() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    // Inicializa o estado mutavel da partida a partir da configuracao carregada.
     TileMap map = config.map;
-    std::vector<unsigned char> visitedTiles(gMapCols * gMapRows, 0);
-    visitedTiles[indexOf(config.witchStart.col, config.witchStart.row)] = 1;
+    std::vector<unsigned char> visitedTiles(config.cols * config.rows, 0);
+    visitedTiles[indexOf(config, config.witchStart.col, config.witchStart.row)] = 1;
     map.setTile(config.witchStart.col, config.witchStart.row, static_cast<unsigned char>(config.visitedTileIndex));
 
     std::vector<float> tileVertices;
@@ -988,6 +998,7 @@ int main() {
 
     std::cout << "Controles: setas/WASD para N/S/L/O; Q/E/Z/C para diagonais. ESC sai, R reinicia." << std::endl;
 
+    // Loop principal: entrada, atualizacao e renderizacao.
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         const double currentTime = glfwGetTime();
@@ -998,10 +1009,11 @@ int main() {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 
+        // Reinicia toda a partida quando o jogador perde ou vence.
         if (gameResult != GAME_PLAYING && glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
             map = config.map;
-            visitedTiles.assign(gMapCols * gMapRows, 0);
-            visitedTiles[indexOf(config.witchStart.col, config.witchStart.row)] = 1;
+            visitedTiles.assign(config.cols * config.rows, 0);
+            visitedTiles[indexOf(config, config.witchStart.col, config.witchStart.row)] = 1;
             map.setTile(config.witchStart.col, config.witchStart.row, static_cast<unsigned char>(config.visitedTileIndex));
             crystals = makeCrystals(config);
             mushrooms = makeMushrooms(config, mushroomRun);
@@ -1036,6 +1048,7 @@ int main() {
             }
         }
 
+        // Movimento da bruxa em passos discretos entre centros de tiles.
         if (gameResult == GAME_PLAYING && witchState == WITCH_ALIVE && moveCooldown <= 0.0f) {
             if (handleMovement(window, config, map, visitedTiles, witch)) {
                 moveCooldown = kMoveCooldownSeconds;
@@ -1047,6 +1060,7 @@ int main() {
             updateFrameIndex(cursedTreeAnimTimer, cursedTreeAnimationFrame, dt, 0.12f, 5);
         }
 
+        // Atualiza os inimigos moveis apenas durante a partida ativa.
         if (gameResult == GAME_PLAYING) {
             for (Mushroom& mushroom : mushrooms) {
                 updateMushroom(mushroom, dt);
@@ -1054,6 +1068,7 @@ int main() {
             }
         }
 
+        // Resolve coleta de cristais e derrota por contato com inimigos.
         if (gameResult == GAME_PLAYING && witchState == WITCH_ALIVE) {
             witch.sheet = &witchRun;
             witch.frameTime = 0.13f;
@@ -1114,6 +1129,7 @@ int main() {
         int screenH = 0;
         glfwGetFramebufferSize(window, &screenW, &screenH);
 
+        // Inicia a etapa de desenho do frame atual.
         glClearColor(0.10f, 0.14f, 0.18f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -1130,6 +1146,7 @@ int main() {
         drawTextureScreen(moonOverlayTexture, vbo, offsetLoc, alphaLoc, useTextureLoc, spriteVertices,
             static_cast<float>(screenW) - moonOverlayW, 0.0f, moonOverlayW, moonOverlayH, 1.0f);
 
+        // Desenha fundo, mapa, coletaveis, inimigos, personagem e interface.
         drawMap(config, map, visitedTiles, floorTexture, visitedTexture, vbo, offsetLoc, alphaLoc, useTextureLoc, tileVertices);
 
         for (const Crystal& crystal : crystals) {
@@ -1137,12 +1154,8 @@ int main() {
                 crystalActor.col = crystal.col;
                 crystalActor.row = crystal.row;
                 crystalActor.sheet = &crystalSheets[crystalFrame];
-                drawActor(crystalActor, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
+                drawActor(config, crystalActor, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
             }
-        }
-
-        for (const Mushroom& mushroom : mushrooms) {
-            (void)mushroom;
         }
 
         for (const GridPos& tree : config.trees) {
@@ -1157,6 +1170,7 @@ int main() {
             treeActor.col = static_cast<float>(tree.col);
             treeActor.row = static_cast<float>(tree.row);
             drawTreeActor(
+                config,
                 treeActor,
                 shaderProgram,
                 vbo,
@@ -1169,11 +1183,12 @@ int main() {
         }
 
         for (const Mushroom& mushroom : mushrooms) {
-            drawActor(mushroom.actor, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
+            drawActor(config, mushroom.actor, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
         }
 
         if (witchState == WITCH_DYING) {
             drawActorWithYOffset(
+                config,
                 witch,
                 shaderProgram,
                 vbo,
@@ -1184,7 +1199,7 @@ int main() {
                 witchDeathFrameOffsetY(witch.frame, witch.drawHeight)
             );
         } else {
-            drawActor(witch, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
+            drawActor(config, witch, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 1.0f);
         }
 
         for (const GridPos& tree : config.trees) {
@@ -1198,11 +1213,12 @@ int main() {
             const float treeSplitY = static_cast<float>(treeActor.sheet->frameHeight) * 0.62f;
             treeActor.col = static_cast<float>(tree.col);
             treeActor.row = static_cast<float>(tree.row);
-            drawTreeActor(treeActor, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 0.0f, treeSplitY);
+            drawTreeActor(config, treeActor, shaderProgram, vbo, offsetLoc, alphaLoc, spriteVertices, 0.0f, treeSplitY);
         }
 
         drawCrystalCounter(std::min(collectedCrystals, crystalsToWin), crystalsToWin, shaderProgram, vbo, offsetLoc, alphaLoc, useTextureLoc, colorLoc, spriteVertices);
 
+        // Sobrepoe a tela final quando a partida termina.
         if (gameResult == GAME_WON || gameResult == GAME_LOST) {
             drawScreenRect(shaderProgram, vbo, offsetLoc, alphaLoc, useTextureLoc, colorLoc, spriteVertices,
                 0.0f, 0.0f, static_cast<float>(screenW), static_cast<float>(screenH), 1.0f, 1.0f, 1.0f, 0.86f);
@@ -1241,6 +1257,7 @@ int main() {
         glfwSwapBuffers(window);
     }
 
+    // Libera recursos graficos antes de encerrar.
     glDeleteBuffers(1, &ebo);
     glDeleteBuffers(1, &vbo);
     glDeleteVertexArrays(1, &vao);
