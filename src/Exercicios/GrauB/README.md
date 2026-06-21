@@ -187,7 +187,7 @@ Quando a bruxa entra num tile válido:
 
 Essa solução cumpre a exigência de troca de tile ao pisar.
 
-## Estrutura dr arquivo `map.txt`
+## Estrutura do arquivo `map.txt`
 
 O formato foi organizado em blocos legíveis. Um resumo da estrutura atual:
 
@@ -225,9 +225,9 @@ MUSHROOMS 2
 
 ### Pré-requisitos
 
-- projeto compilável com `CMake`
-- dependências gráficas resolvidas pelo projeto
-- ambiente capaz de executar `OpenGL`, `GLFW` e `GLAD`
+- Projeto compilável com `CMake`
+- Dependências gráficas resolvidas pelo projeto
+- Ambiente capaz de executar `OpenGL`, `GLFW` e `GLAD`
 
 ### Compilação
 
