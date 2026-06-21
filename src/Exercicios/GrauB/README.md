@@ -337,6 +337,10 @@ Ao executar o programa, espera-se que:
 - a coleta total dos cristais produza vitoria
 - o jogador possa reiniciar com `R`
 
+![Resultado da Execução](GrauB-vitoria.gif)
+
+![Resultado da Execução](GrauB-derrota.gif)
+
 ## Possiveis Extensoes Futuras
 
 Algumas evolucoes naturais para este projeto seriam:
