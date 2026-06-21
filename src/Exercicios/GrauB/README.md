@@ -173,7 +173,7 @@ Essa verificação é feita antes de cada movimento.
 
 ### 6. Coleta, risco e objetivo
 
-- Os cristais são coletados por contacto
+- Os cristais são coletados por contato
 - Os inimigos `Mushrooms` devem ser evitados
 - Ao colidir com um inimigo, a bruxa perde a partida
 - Ao coletar todos os cristais necessários, o jogador vence
