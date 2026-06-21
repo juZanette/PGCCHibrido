@@ -1,4 +1,8 @@
-# Grau B - Jogo com Tilemap Isometrico Configuravel
+# Grau B - Jogo com Tilemap Isometrico
+
+## Autora
+
+Júlia Faccio Zanette
 
 ## Visao Geral
 
