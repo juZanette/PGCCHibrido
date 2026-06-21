@@ -1,162 +1,195 @@
-# Grau B - Jogo com Tilemap Isometrico
+# Grau B - Jogo com Tilemap Isométrico
 
 ## Autora
 
 Júlia Faccio Zanette
 
-## Visao Geral
+## Visão Geral
 
-O `GrauB` e a consolidacao dos conceitos trabalhados ao longo das atividades anteriores, principalmente:
+O projeto `GrauB` implementa um protótipo de jogo com tilemap isométrico em formato `diamond`, controlo da personagem por teclado, obstáculos não caminháveis, coleta de itens, inimigos móveis, alteração visual dos tiles visitados e condições de vitória e derrota.
 
-- `M5`: personagem animado, troca de estados visuais e uso de spritesheets
-- `M6`: tilemap isometrico, indexacao de tiles e projecao em formato diamond
-- `AtividadeVivencial3`: movimentacao da personagem no mapa isometrico e interacao com obstaculos e inimigos
+A fase é descrita por um arquivo de configuração externo, o que permite separar com clareza:
 
-O objetivo desta entrega foi transformar esses elementos em um prototipo de jogo mais completo, com regras de vitoria e derrota, configuracao externa por arquivo texto e separacao clara entre:
+- Dados da fase
+- Lógica de movimentação
+- Lógica de colisão
+- Lógica de animação
+- Renderização do mapa
+- Renderização dos sprites e da interface
 
-- dados da fase
-- logica de movimentacao
-- logica de colisao
-- renderizacao do mapa
-- renderizacao de sprites e interface
-
-Em vez de deixar a fase fixa dentro do codigo, o projeto passou a carregar um `map.txt`, que define:
-
-- dimensoes do mapa
-- tiles usados no chao
-- tiles caminhaveis e nao caminhaveis
-- posicao inicial da personagem
-- posicao de arvores
-- posicao de cristais
-- trajetos dos inimigos
-
-Isso aproxima a atividade de uma estrutura mais real de jogo, onde o codigo implementa as regras e o arquivo de configuracao descreve a fase.
+Essa organização aproxima o projeto de uma estrutura mais robusta, na qual o código implementa as regras do jogo e o arquivo de configuração descreve o cenário.
 
 ## Objetivo da Atividade
 
-O enunciado do Grau B pedia um prototipo de jogo simples com tilemap isometrico, incluindo:
+O enunciado do Grau B solicita a implementação de um jogo simples com tilemap isométrico, contemplando:
 
-1. mapa com no minimo `15x15`
-2. configuracao da fase por arquivo
-3. personagem animado
-4. movimentacao em `8 direcoes`
-5. restricao a tiles caminhaveis
-6. coleta de itens
-7. evitacao de perigos
-8. troca de tile ao pisar
-9. objetivo de vitoria
-10. logica de objetos no arquivo texto
-11. logica de caminhabilidade no arquivo texto
+1. Mapa com, no mínimo, `15x15` tiles
+2. Configuração da fase por arquivo de texto
+3. Personagem animada
+4. Movimentação em `8 direções`
+5. Restrição a tiles caminháveis
+6. Coleta de itens
+7. Evitação de perigos
+8. Troca de tile ao pisar
+9. Objetivo de vitória
+10. Posicionamento dos objetos nr arquivo de configuração
+11. Definição da caminhabilidade nr arquivo de configuração
 
-Esta implementacao atende esses pontos da seguinte forma:
+Esta implementação atende a esses requisitos da seguinte forma:
 
-- o mapa atual possui `20x20` tiles
-- a fase e carregada a partir de `map.txt`
-- a personagem principal e a `Blue Witch`, com animacao de corrida e morte
-- o movimento ocorre em `N`, `S`, `L`, `O`, `NE`, `NO`, `SE`, `SO`
-- a matriz `WALKABLE` define por onde a bruxa pode andar
-- os cristais sao os itens de coleta
-- os `Mushrooms` funcionam como ameacas moveis
-- os tiles pisados trocam para o tileset de visitados
-- a vitoria ocorre ao coletar todos os cristais configurados
-- arvores, cristais, inimigos e posicao inicial sao definidos no arquivo
+- O mapa atual possui `20x20` tiles
+- A fase é carregada a partir dr arquivo `map.txt`
+- A personagem principal é a `Blue Witch`, com estado normal e estado de derrota
+- O movimento ocorre em `N`, `S`, `L`, `O`, `NE`, `NO`, `SE` e `SO`
+- A matriz `WALKABLE` define por onde a personagem pode deslocar-se
+- Os cristais funcionam como itens de Coleta
+- Os `Mushrooms` funcionam como ameaças móveis
+- Os tiles percorridos mudam para um tileset de visitado
+- A vitória ocorre ao recolher todos os cristais configurados
+- Árvores, estruturas animadas, cristais, inimigos e posição inicial são definidos nr arquivo
 
 ## Resumo do Jogo
 
-O jogador controla uma bruxa em um mapa isometrico. O objetivo e coletar todos os cristais da fase sem colidir com os inimigos. Durante a partida:
+O jogados controla uma bruxa num mapa isométrico. O objetivo é recolher todos os cristais da fase sem colidir com os inimigos.
 
-- a bruxa anda apenas de tile em tile
-- o movimento so acontece em tiles permitidos
-- arvores tambem bloqueiam a passagem
-- os inimigos percorrem trajetos lineares
-- a colisao com um inimigo causa derrota
-- cada tile visitado muda de aparencia
+Durante a partida:
 
-Com isso, o projeto deixa de ser apenas uma demonstracao grafica e passa a ter um ciclo jogavel completo:
+- A bruxa desloca-se de tile em tile
+- O movimento só acontece em tiles permitidos
+- Árvores e estruturas animadas bloqueiam a passagem
+- Os inimigos percorrem trajetos lineares
+- A colisão com um inimigo provoca derrota
+- Cada tile visitado muda de aparência
 
-- iniciar
-- explorar
-- evitar perigo
-- coletar objetivo
-- vencer ou perder
-- reiniciar
+Com isso, o projeto deixa de ser apenas uma demonstração gráfica e passa a apresentar um ciclo jogável completo:
+
+- Iniciar
+- Explorar
+- Evitar perigos
+- Recolher o objetivo
+- Vencer ou perder
+- Reiniciar
+
+## Organização dos arquivos do Grau B
+
+- `GrauB.cpp` - fluxo principal do jogo, leitura da fase, atualização, colisão e renderização
+- `TileMap.h` - estrutura que armazena os índices do mapa
+- `TilemapView.h` - interface de conversão do mapa para a tela
+- `DiamondView.h` - implementação da projeção isométrica diamond
+- `GameTypes.h` - estruturas de textura, spritesheet, ator, cristal, inimigo e estados do jogo
+- `gl_utils.h` e `gl_utils.cpp` - utilitários de OpenGL, texturas, shaders e spritesheets
+- `map.txt` - definição completa da fase
+- `_geral_vs.glsl` - vertex shader usado na renderização
+- `_geral_fs.glsl` - fragment shader usado na renderização
+- `win.png` - imagem de vitória
+- `game-over.png` - imagem de derrota
+- `restart-exit.png` - instruções visuais da tela final
+
+## Fluxo Geral do Programa
+
+De forma resumida, o programa funciona assim:
+
+1. Carrega a configuração da fase pelo `map.txt`
+2. Valida dimensões, tiles e objetos da fase
+3. Inicializa a janela e o contexto OpenGL
+4. Carrega texturas, spritesheets e shaders
+5. Cria o estado inicial da partida
+6. Entra no loop principal
+7. Processa a entrada do teclado
+8. Atualiza animações e inimigos
+9. Resolve Coleta e colisão
+10. Desenha mapa, objetos, personagem e interface
+11. Mostra a tela de vitória ou derrota quando necessário
 
 ## Principais Funcionalidades
 
-### 1. Tilemap isometrico
+### 1. Tilemap isométrico
 
-- o mapa usa projecao `diamond`
-- cada posicao do grid possui um indice de tile
-- os tiles sao desenhados em ordem diagonal para preservar a profundidade visual
-- a conversao de coordenadas do mapa para a tela e feita pela `DiamondView`
+- O mapa utiliza projeção `diamond`
+- Cada posição do grid possui um índice de tile
+- Os tiles são desenhados em ordem diagonal para preservar a profundidade visual
+- A conversão de coordenadas do mapa para a tela é feita pela `DiamondView`
 
-### 2. Fase configuravel por arquivo
+### 2. Fase configurável por arquivo
 
-O arquivo `map.txt` concentra os dados da fase. Isso permite alterar o comportamento do jogo sem mexer diretamente na logica principal.
+O arquivo `map.txt` concentra os dados da fase, permitindo alterar o comportamento do jogo sem modificar diretamente a lógica principal.
 
 Ele define:
 
-- `TILESET`: imagem base do piso, quantidade de colunas e linhas e tamanho do tile
-- `VISITED_TILESET`: imagem usada quando o jogador pisa em um tile
-- `SIZE`: dimensoes do mapa
-- `MAP`: matriz de indices do chao
-- `WALKABLE`: matriz de permissao de movimento
-- `WITCH`: posicao inicial da personagem
-- `TREES`: obstaculos estaticos
-- `CRYSTALS`: itens coletaveis
-- `MUSHROOMS`: inimigos moveis com ponto inicial, final e velocidade
+- `TILESET` - imagem base do piso, quantidade de colunas e linhas e dimensões do tile
+- `VISITED_TILESET` - imagem usada quando o jogados pisa num tile
+- `SIZE` - dimensões do mapa
+- `MAP` - matriz de índices do chão
+- `WALKABLE` - matriz de permissão de movimento
+- `WITCH` - posição inicial da personagem
+- `TREES` - obstáculos estáticos e estruturas animadas
+- `CRYSTALS` - itens recolhíveis
+- `MUSHROOMS` - inimigos móveis com ponto inicial, final e velocidade
 
-### 3. Personagem animado
+### 3. Personagem animada
 
-A personagem principal usa spritesheet animada:
+A personagem principal utiliza spritesheet animada:
 
-- animacao de corrida durante a movimentacao
-- animacao de morte ao colidir com inimigo
-- orientacao horizontal ajustada conforme a direcao
+- Animação de deslocação
+- Estado visual de derrota
+- Orientação horizontal ajustada conforme a direção
 
-### 4. Movimento em 8 direcoes
+### 4. Movimento em 8 direções
 
-O movimento e discreto, sempre entre centros de tiles, como pedido no enunciado.
+O movimento é discreto, sempre entre os centros dos tiles.
 
-Direcoes permitidas:
+Direções permitidas:
 
-- norte
-- sul
-- leste
-- oeste
-- nordeste
-- noroeste
-- sudeste
-- sudoeste
+- Norte
+- Sul
+- Leste
+- Oeste
+- Nordeste
+- Noroeste
+- Sudeste
+- Sudoeste
+
+## Controles
+
+- `W` ou `Seta para cima` - norte
+- `S` ou `Seta para baixo` - sul
+- `A` ou `Seta para a esquerda` - oeste
+- `D` ou `Seta para a direita` - leste
+- `Q` - noroeste
+- `E` - nordeste
+- `Z` - sudoeste
+- `C` - sudeste
+- `R` - reinicia após vitória ou derrota
+- `ESC` - encerra a aplicação
 
 ### 5. Caminhabilidade e bloqueios
 
-O jogo nao permite que a personagem atravesse:
+O jogo não permite que a personagem atravesse:
 
-- tiles marcados como `0` em `WALKABLE`
-- tiles ocupados por arvores
+- Tiles marcados com `0` em `WALKABLE`
+- Tiles ocupados por árvores ou estruturas do cenário
 
-Essa verificacao acontece antes de cada movimento.
+Essa verificação é feita antes de cada movimento.
 
 ### 6. Coleta, risco e objetivo
 
-- os cristais sao coletados por contato
-- os inimigos `Mushrooms` precisam ser evitados
-- ao encostar em um inimigo, a bruxa morre
-- ao coletar todos os cristais necessarios, o jogador vence
+- Os cristais são coletados por contacto
+- Os inimigos `Mushrooms` devem ser evitados
+- Ao colidir com um inimigo, a bruxa perde a partida
+- Ao coletar todos os cristais necessários, o jogados vence
 
 ### 7. Troca visual dos tiles visitados
 
-Quando a bruxa entra em um tile valido:
+Quando a bruxa entra num tile válido:
 
-- o tile e marcado como visitado
-- o mapa troca a aparencia daquele chao para indicar exploracao
+- O tile é marcado como visitado
+- O mapa altera a aparência desse chão para indicar exploração
 
-Isso cumpre a exigencia de troca de tile ao pisar.
+Essa solução cumpre a exigência de troca de tile ao pisar.
 
-## Estrutura do Arquivo `map.txt`
+## Estrutura dr arquivo `map.txt`
 
-O formato foi organizado em blocos legiveis. Um resumo da estrutura atual:
+O formato foi organizado em blocos legíveis. Um resumo da estrutura atual:
 
 ```txt
 TILESET "caminho/tileset.png" 3 6 74.88 37.44
@@ -181,178 +214,88 @@ MUSHROOMS 2
 ...
 ```
 
-### Significado de cada bloco
+### Observações importantes
 
-- `TILESET`: informa de onde vem o piso principal
-- `VISITED_TILESET`: informa de onde vem o tile de piso visitado
-- `SIZE`: define `colunas` e `linhas`
-- `MAP`: matriz com os indices dos tiles do chao
-- `WALKABLE`: matriz binaria, onde `1` permite andar e `0` bloqueia
-- `WITCH`: coluna e linha iniciais da personagem
-- `TREES`: lista de arvores, com `col row type`
-- `CRYSTALS`: lista de cristais, com `col row`
-- `MUSHROOMS`: lista de inimigos, com inicio, fim, velocidade e estado inicial de movimento
-
-### Observacoes importantes
-
-- o mapa precisa ter pelo menos `15x15`
-- os cristais precisam nascer em tiles validos
-- arvores tambem tornam o tile nao caminhavel
-- o tamanho visual do tile tambem e lido do arquivo
-
-## Controles
-
-- `W` ou `Seta para cima`: norte
-- `S` ou `Seta para baixo`: sul
-- `A` ou `Seta para esquerda`: oeste
-- `D` ou `Seta para direita`: leste
-- `Q`: noroeste
-- `E`: nordeste
-- `Z`: sudoeste
-- `C`: sudeste
-- `R`: reinicia apos vitoria ou derrota
-- `ESC`: fecha a aplicacao
+- O mapa deve ter, no mínimo, `15x15`
+- Os cristais devem surgir em tiles válidos
+- Árvores e estruturas também tornam o tile não caminhável
+- O tamanho visual do tile também é lido dr arquivo
 
 ## Como Executar
 
-### Pre-requisitos
+### Pré-requisitos
 
-- projeto compilando com `CMake`
-- dependencias graficas resolvidas pelo projeto
+- projeto compilável com `CMake`
+- dependências gráficas resolvidas pelo projeto
 - ambiente capaz de executar `OpenGL`, `GLFW` e `GLAD`
 
-### Compilacao
+### Compilação
 
 Na raiz do projeto:
 
 ```powershell
-cmake -S . -B build
-cmake --build build --target GrauB
+cd build
+cmake --build .
+./GrauB.exe
 ```
 
-### Execucao
+## Decisões de Implementação
 
-```powershell
-.\build\GrauB.exe
-```
+### Uso de configuração externa
 
-## Organizacao dos Arquivos do Grau B
+A principal decisão deste trabalho foi deslocar a fase para fora do código. Isso traz várias vantagens:
 
-- `GrauB.cpp`: fluxo principal do jogo, leitura da fase, atualizacao, colisao e renderizacao
-- `TileMap.h`: estrutura que armazena os indices do mapa
-- `TilemapView.h`: interface de conversao mapa para tela
-- `DiamondView.h`: implementacao da projecao isometrica diamond
-- `GameTypes.h`: structs de textura, spritesheet, ator, cristal, inimigo e estados do jogo
-- `gl_utils.h` e `gl_utils.cpp`: utilitarios de OpenGL, texturas, shaders e spritesheets
-- `map.txt`: definicao completa da fase
-- `_geral_vs.glsl`: vertex shader usado na renderizacao
-- `_geral_fs.glsl`: fragment shader usado na renderizacao
-- `win.png`: imagem de vitoria
-- `game-over.png`: imagem de derrota
-- `restart-exit.png`: instrucoes visuais da tela final
+- Facilita testar variações da fase
+- Organiza melhor a lógica do jogo
+- Deixa o código menos dependente de valores fixos
 
-## Fluxo Geral do Programa
+### Ordem de renderização do mapa
 
-De forma resumida, o programa funciona assim:
+O mapa é desenhado em ordem diagonal. Isso evita problemas de profundidade visual comuns em mapas isométricos e ajuda a manter a leitura correta dos tiles.
 
-1. carrega a configuracao da fase pelo `map.txt`
-2. valida dimensoes, tiles e objetos da fase
-3. inicializa a janela e o contexto OpenGL
-4. carrega texturas, spritesheets e shaders
-5. cria o estado inicial da partida
-6. entra no loop principal
-7. processa entrada do teclado
-8. atualiza animacoes e inimigos
-9. resolve coleta e colisao
-10. desenha mapa, objetos, personagem e interface
-11. mostra tela de vitoria ou derrota quando necessario
+### Árvores em duas partes
 
-## Decisoes de Implementacao
+As árvores são desenhadas em duas partes para reforçar o efeito de profundidade:
 
-### Uso de configuracao externa
+- Uma parte fica atrás do personagem
+- Outra parte pode aparecer à frente
 
-A principal decisao deste trabalho foi deslocar a fase para fora do codigo. Isso traz algumas vantagens:
-
-- facilita testar variacoes de fase
-- organiza melhor a logica do jogo
-- deixa o codigo menos dependente de valores fixos
-- atende diretamente ao enunciado
-
-### Ordem de renderizacao do mapa
-
-O mapa e desenhado em ordem diagonal. Isso evita problemas de profundidade visual comuns em mapas isometricos e ajuda a manter a leitura correta dos tiles.
-
-### Arvores em duas passadas
-
-As arvores sao desenhadas em duas partes para reforcar o efeito de profundidade:
-
-- uma parte fica atras do personagem
-- outra parte pode aparecer na frente
-
-Isso melhora a percepcao espacial do cenario.
+Isso melhora a perceção espacial do cenário.
 
 ### Estado de tiles visitados
 
-Em vez de apenas mover a personagem, o jogo guarda quais tiles ja foram percorridos. Isso:
+Em vez de apenas mover a personagem, o jogo guarda quais tiles já foram percorridos. Isso:
 
-- evidencia a exploracao
-- cumpre o requisito de troca de tile
-- melhora o feedback visual para o jogador
-
-## Relacao com os Trabalhos Anteriores
-
-### Heranca de `M5`
-
-Do `M5`, o projeto reaproveita a ideia de:
-
-- personagem como sprite animado
-- controle por estados visuais
-- uso organizado de spritesheets
-
-### Heranca de `M6`
-
-Do `M6`, o projeto amplia:
-
-- tilemap indexado
-- projecao isometrica
-- desenho por tiles
-- inimigos e coleta em mapa isometrico
-
-### Heranca da `AtividadeVivencial3`
-
-Da `AtividadeVivencial3`, o projeto evolui:
-
-- movimentacao em mapa isometrico
-- controle em multiplas direcoes
-- estrutura geral de jogo no grid
+- Evidencia a exploração
+- Cumpre o requisito de troca de tile
+- Melhora o retorno visual ao jogados
 
 ## Resultado Esperado
 
 Ao executar o programa, espera-se que:
 
-- a janela abra com um cenario isometrico completo
-- a bruxa apareca na posicao configurada
-- o mapa seja desenhado conforme o `map.txt`
-- os tiles bloqueados realmente impecam a passagem
-- as arvores aparecam como obstaculos visuais e logicos
-- os cristais possam ser coletados
-- os inimigos se movimentem continuamente
-- a colisao com inimigo produza derrota
-- a coleta total dos cristais produza vitoria
-- o jogador possa reiniciar com `R`
+- A janela abra com um cenário isométrico completo
+- A bruxa apareça na posição configurada
+- O mapa seja desenhado conforme o `map.txt`
+- Os tiles bloqueados realmente impeçam a passagem
+- Árvores e estruturas apareçam como obstáculos visuais e lógicos
+- Os cristais possam ser coletados
+- Os inimigos se movam continuamente
+- A colisão com inimigo produza derrota
+- A Coleta total dos cristais produza vitória
+- O jogados possa reiniciar com `R`
 
 ![Resultado da Execução](GrauB-vitoria.gif)
 
 ![Resultado da Execução](GrauB-derrota.gif)
 
-## Possiveis Extensoes Futuras
+## Possíveis Extensões Futuras
 
-Algumas evolucoes naturais para este projeto seriam:
+Algumas evoluções naturais para este projeto seriam:
 
-- multiplas fases com varios arquivos de configuracao
-- mais tipos de tiles especiais
-- pontos de chegada alem da coleta
-- sistema de pontuacao
-- barra de vida
-- mais comportamentos de inimigos
-- tela inicial e menu
+- Múltiplas fases com várior arquivos de configuração
+- Mais tipos de tiles especiais
+- Objetivos alternativos além da Coleta
+- Barra de vida
+- Mais comportamentos de inimigos
+- Tela inicial e menu
