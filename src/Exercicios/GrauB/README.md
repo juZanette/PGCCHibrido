@@ -6,7 +6,7 @@ Júlia Faccio Zanette
 
 ## Visão Geral
 
-O projeto `GrauB` implementa um protótipo de jogo com tilemap isométrico em formato `diamond`, controlo da personagem por teclado, obstáculos não caminháveis, coleta de itens, inimigos móveis, alteração visual dos tiles visitados e condições de vitória e derrota.
+O projeto `GrauB` implementa um protótipo de jogo com tilemap isométrico em formato `diamond`, controle da personagem por teclado, obstáculos não caminháveis, coleta de itens, inimigos móveis, alteração visual dos tiles visitados e condições de vitória e derrota.
 
 A fase é descrita por um arquivo de configuração externo, o que permite separar com clareza:
 
