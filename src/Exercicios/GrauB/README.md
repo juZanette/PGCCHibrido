@@ -50,7 +50,7 @@ Esta implementação atende a esses requisitos da seguinte forma:
 
 ## Resumo do Jogo
 
-O jogados controla uma bruxa num mapa isométrico. O objetivo é recolher todos os cristais da fase sem colidir com os inimigos.
+O jogador controla uma bruxa num mapa isométrico. O objetivo é recolher todos os cristais da fase sem colidir com os inimigos.
 
 Durante a partida:
 
@@ -117,7 +117,7 @@ O arquivo `map.txt` concentra os dados da fase, permitindo alterar o comportamen
 Ele define:
 
 - `TILESET` - imagem base do piso, quantidade de colunas e linhas e dimensões do tile
-- `VISITED_TILESET` - imagem usada quando o jogados pisa num tile
+- `VISITED_TILESET` - imagem usada quando o jogador pisa num tile
 - `SIZE` - dimensões do mapa
 - `MAP` - matriz de índices do chão
 - `WALKABLE` - matriz de permissão de movimento
@@ -176,7 +176,7 @@ Essa verificação é feita antes de cada movimento.
 - Os cristais são coletados por contacto
 - Os inimigos `Mushrooms` devem ser evitados
 - Ao colidir com um inimigo, a bruxa perde a partida
-- Ao coletar todos os cristais necessários, o jogados vence
+- Ao coletar todos os cristais necessários, o jogador vence
 
 ### 7. Troca visual dos tiles visitados
 
@@ -268,7 +268,7 @@ Em vez de apenas mover a personagem, o jogo guarda quais tiles já foram percorr
 
 - Evidencia a exploração
 - Cumpre o requisito de troca de tile
-- Melhora o retorno visual ao jogados
+- Melhora o retorno visual ao jogador
 
 ## Resultado Esperado
 
@@ -283,7 +283,7 @@ Ao executar o programa, espera-se que:
 - Os inimigos se movam continuamente
 - A colisão com inimigo produza derrota
 - A Coleta total dos cristais produza vitória
-- O jogados possa reiniciar com `R`
+- O jogador possa reiniciar com `R`
 
 ![Resultado da Execução](GrauB-vitoria.gif)
 
